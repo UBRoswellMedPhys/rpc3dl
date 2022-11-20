@@ -167,7 +167,7 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     
 
 if __name__ == '__main__':
-    parent_dir = r"F:\DICOMdata\RoswellData"
+    parent_dir = r"D:\H_N"
     dest_dir = r"D:\extracteddata"
     
     pixel_size = 1
@@ -175,10 +175,11 @@ if __name__ == '__main__':
     import os
     import json
     for subdir in os.listdir(parent_dir):
-        if not subdir.startswith("018_040"):
-            continue
         testfolder = os.path.join(parent_dir,subdir)
-        if not os.path.isdir(testfolder):
+        if not all((os.path.isdir(testfolder),
+                    subdir.startswith("ANON"))):
+            continue
+        if subdir.startswith("ANON_001") or subdir.startswith("ANON_017"):
             continue
         print("Processing {}".format(subdir))
         imgfiles = []
@@ -193,6 +194,26 @@ if __name__ == '__main__':
                 if "BODY" in file:
                     continue
                 ssfile = pydicom.read_file(os.path.join(testfolder,file))
+                
+        # acquire Frame of Reference UID from images (error if more than one)
+        for i, file in enumerate(imgfiles):
+            if i == 0:
+                img_ref_uid = file.FrameOfReferenceUID
+            else:
+                assert img_ref_uid == file.FrameOfReferenceUID, \
+                    "Too many reference frames in image files for " + \
+                    "patient {}".format(subdir)
+                    
+        # filter dose files for only those that match frame of reference
+        accepted_dosefiles = []
+        for file in dosefile:
+            if file.FrameOfReferenceUID == img_ref_uid:
+                accepted_dosefiles.append(file)
+        assert len(accepted_dosefiles) > 0, \
+            "No valid dose files found for patient {}".format(subdir)
+        dosefile = accepted_dosefiles
+        
+        
         
         if any((len(dosefile) == 0, ssfile is None)):
             print("Skipping {} due to missing file".format(testfolder))
