@@ -31,7 +31,6 @@ def batcher(generator,batch_size,num_inputs=3):
     X,Y : np.array
         Batched X,Y pairs of length = batch_size
     """
-    # TODO - will need to update this to support patient characteristic inclusion
     
     # instantiate temp variables to batch building
     X = {i:[] for i in range(num_inputs)}
@@ -106,6 +105,7 @@ def gen_inputs(source_dir,labels,epochs,ptchars=None,shuffle=True,single=False,
         but is packaged with an additional axis
 
     """
+    
     
     # === Prepare necessary class balance values ===
     if class_balance and any((not shuffle, not batch_size)):
@@ -353,8 +353,17 @@ def prep_inputs(img,dose,par_l,par_r,
                 
             if np.random.random() > 0.5:
                 seed = np.random.random()
-                left = zoom_aug(left,seed=seed)
-                right = zoom_aug(right,seed=seed)  
+                left = [
+                    left[...,i] for i in range(left.shape[-1])
+                    ]
+                right = [
+                    right[...,i] for i in range(right.shape[-1])
+                    ]
+                for i in range(len(left)):
+                    left[i] = zoom_aug(left[i],seed=seed)
+                    right[i] = zoom_aug(right[i],seed=seed)
+                left = np.stack(left,axis=-1)
+                right = np.stack(right,axis=-1)
 
         
         if ipsi_contra:
@@ -393,7 +402,12 @@ def prep_inputs(img,dose,par_l,par_r,
                 to_return = rotation(to_return, seed=seed)
             if np.random.random() > 0.5:
                 seed = np.random.random()
-                to_return = zoom_aug(to_return,seed=seed)
+                to_return = [
+                    to_return[...,i] for i in range(to_return.shape[-1])
+                    ]
+                for i in range(len(to_return)):
+                    to_return[i] = zoom_aug(to_return[i],seed=seed)
+                to_return = np.stack(to_return,axis=-1)
         
         to_return = to_return.astype(np.float32)
         return to_return
