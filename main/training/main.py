@@ -16,14 +16,14 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 import _utils as util
-from build_model import get_model, unified_model, get_model_w_ptchars
+from build_model import get_model
 
 def IDE_config():
     
     LEARNRATE = 0.001
     WITH_MASK = True
-    SINGLE = False
-    BATCH_SIZE = 10
+    SINGLE = True
+    BATCH_SIZE = 3
     CLASS_BAL = 'oversample'
     EPOCHS = 80
     BASE_FILTERS = 16
@@ -35,8 +35,10 @@ def IDE_config():
         'withmask':WITH_MASK,
         'masked':False,
         'wl':True,
-        'dose_norm':True,
-        'ipsi_contra':True,
+        'wl_window':400,
+        'wl_level':50,
+        'dose_norm':False,
+        'ipsi_contra':False,
         'single':SINGLE,
         'class_balance':CLASS_BAL,
         'augment':True,
@@ -174,52 +176,45 @@ def run(config):
         ptchars = None
     
     
-    # ran into some weirdness around data generation running out, so we
-    # add one epoch on to ensure the generator extends beyond what's called
     inputdata = util.gen_inputs(
-        source_dir=SOURCE_FOLDER,
+        config=config,
         labels=train_labels,
         ptchars=ptchars,
-        epochs=config.getint('data_settings','epochs') + 1, # <-- here
-        shuffle=config.getboolean('data_settings','shuffle'),
-        single=config.getboolean('data_settings','single'),
-        class_balance=config.get('data_settings','class_balance'),
-        batch_size=config.getint('model_settings','batch_size'),
-        wl=config.getboolean('data_settings','wl'),
-        normalize=config.getboolean('data_settings','normalize'),
-        dose_norm=config.getboolean('data_settings','dose_norm'),
-        withmask=config.getboolean('data_settings','withmask'),
-        masked=config.getboolean('data_settings','masked'),
-        ipsi_contra=config.getboolean('data_settings','ipsi_contra'),
-        augment=config.getboolean('data_settings','augment')        
+        training=True
         )
-    
-    # mostly the same, but just one epoch - validation data is pre-generated
+
     valinputdata = util.gen_inputs(
-        source_dir=SOURCE_FOLDER,
+        config=config,
         labels=val_labels,
         ptchars=ptchars,
-        epochs=1,
-        normalize=config.getboolean('data_settings','normalize'),
-        withmask=config.getboolean('data_settings', 'withmask'),
-        masked=config.getboolean('data_settings','masked'),
-        wl=config.getboolean('data_settings','wl'),
-        dose_norm=config.getboolean('data_settings','dose_norm'),
-        ipsi_contra=config.getboolean('data_settings','ipsi_contra'),
-        single=config.getboolean('data_settings','single'),
-        augment=False,
-        class_balance=False
+        training=False
         )
     
+    if config.getboolean('data_settings','single') is True:
+        if config.getboolean('data_settings','patient_chars') is True:
+            num_inputs = 2
+        else:
+            num_inputs = 1
+    else:
+        if config.getboolean('data_settings','patient_chars') is True:
+            num_inputs = 3
+        else:
+            num_inputs = 2
     
     batch_input = util.batcher(
         inputdata,
-        batch_size=config.getint('model_settings','batch_size')
+        batch_size=config.getint('model_settings','batch_size'),
+        num_inputs=num_inputs
         )
-    val_batch = util.batcher(valinputdata,batch_size=len(val_pts))
+    val_batch = util.batcher(
+        valinputdata,
+        batch_size=len(val_pts),
+        num_inputs=num_inputs
+        )
     
-    val_data = next(val_batch)
+    val_data = next(val_batch) # generates entire validation dataset
     
+    # is this necessary? should it be modifiable?
     def lr_schedule(epoch,lr):
         if epoch < 10:
             return lr
@@ -230,29 +225,13 @@ def run(config):
         
     callback = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
     
-    if config['data_settings']['withmask']:
+    if config.getboolean('data_settings','withmask',fallback=True):
         channels = 3
     else:
         channels = 2
     
-    if config.getboolean('data_settings', 'single') is False and \
-        config.getboolean('data_settings', 'patient_chars') is False:
-        model = get_model(
-            channels=channels,
-            base_filters=config.getint('model_settings','base_filters')
-            )
-    elif config.getboolean('data_settings', 'single') is False and \
-        config.getboolean('data_settings', 'patient_chars') is True:
-        model = get_model_w_ptchars(
-            channels=channels,
-            base_filters=config.getint('model_settings','base_filters')
-            )
-    elif config.getboolean('data_settings', 'single') is True:
-        model = unified_model(
-            channels=channels,
-            base_filters=config.getint('model_settings','base_filters')
-            )
-    # TODO - create route for single input w/ patient chars
+    model = get_model(config)
+    
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=config.getfloat('model_settings', 'initial_learnrate')
@@ -262,7 +241,7 @@ def run(config):
                  tf.keras.metrics.FalseNegatives(),
                  tf.keras.metrics.FalsePositives()]
         )
-    print(model.summary())
+    model.summary()
     history = model.fit(
         x=batch_input,
         steps_per_epoch=math.floor(

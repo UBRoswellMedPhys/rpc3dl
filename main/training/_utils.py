@@ -52,48 +52,48 @@ def batcher(generator,batch_size,num_inputs=3):
             Y = np.array(Y)
             yield X_final, Y
 
-def gen_inputs(source_dir,labels,epochs,ptchars=None,shuffle=True,single=False,
-               class_balance=False,batch_size=None,**kwargs):
+def gen_inputs(config, labels, ptchars, training=True):
     """
     Core data generator for neural network training. This plays a key role as
     it provides us flexibility in how we define data processing.
 
     Parameters
     ----------
-    source_dir : str
+    NOTE: any parameter marked with a * indicates that it is extracted from
+    the config, but descriptions are provided here for clarity.
+    
+    * source_dir : str
         Path to the parent directory where the patient subdirectories reside.
     labels : dict
         Keys are ANON IDs, values are either 1 or 0. Keys are used as reference
         for loading data from files. Expectation is that each ANONID has its
         own subdirectory in the patient directory.
-    epochs : int
+    * epochs : int
         Number of epochs the training will go for. This is used to duplicate
         the patient reference list this number of times so that the generator 
         can continue to produce batches for the entire training process.
     ptchars : pd.DataFrame, optional
         DataFrame of one-hot encoded patient characteristics. Default is None,
         and if None is provided then it bypasses.
-    shuffle : bool, optional
+    * shuffle : bool, optional
         Whether or not to shuffle data. This is used during the epoch-duplicate
         process of building the reference list. If set to True, the ANONIDs are
         shuffled for each epoch. This mirrors Keras's native shuffle parameter
         functionality for the fit method (which is incompatible with 
         generators). The default is True.
-    single : bool, optional
+    * single : bool, optional
         Determines whether to return single-array X. If False, uses the parotid
         bounding box method, which produces two arrays for each X, one each to 
         represent left and right (or ipsilateral and contralateral). The 
         default is False.
-    class_balance : str or False, optional
+    * class_balance : str or False, optional
         Sets the class balance mode. Acceptable values are False (no balancing),
         "oversample", and "undersample". Oversample continuously duplicates
         the ANONIDs for the small class until the population is balanced.
         The default is False.
-    batch_size : int, optional
+    * batch_size : int, optional
         Required if class_balance is used to ensure that the full, balanced
         dataset is cleanly divisible by the batch size. The default is None.
-    **kwargs
-        Arguments to pass to the prep_inputs() function.
         
     Yields
     ------
@@ -105,6 +105,24 @@ def gen_inputs(source_dir,labels,epochs,ptchars=None,shuffle=True,single=False,
         but is packaged with an additional axis
 
     """
+    
+    # === Get parameters from config ====
+    source_dir = config.get('filepaths','source')
+    if training is True:
+        # add one 'fake' epoch to ensure we generate more than enough data
+        epochs = config.getint('data_settings','epochs') + 1
+        class_balance = config.get(
+            'data_settings','class_balance',fallback='oversample'
+            )
+    elif training is False:
+        # if not for training, we only want one full set
+        epochs = 1
+        class_balance = None
+    batch_size = config.getint('model_settings','batch_size')
+    
+    shuffle = config.getboolean('data_settings','shuffle',fallback=True)
+    single = config.getboolean('data_settings','single',fallback=False)
+    
     
     
     # === Prepare necessary class balance values ===
@@ -203,28 +221,21 @@ def gen_inputs(source_dir,labels,epochs,ptchars=None,shuffle=True,single=False,
         # on whether we're ina multi-input paradigm
         X = prep_inputs(img,
                         expanded_dose,
-                        par_l,
-                        par_r,
-                        single=single,
-                        **kwargs)
+                        masks=[par_l,par_r],
+                        config=config)
         if ptchars is not None:
             try:
                 onehot = ptchars.loc[patientID].values.astype(np.float32)
             except KeyError:
                 # TODO - figure out what to do about no chars
                 onehot = np.zeros(shape=(38),dtype=np.float32)
+            if not isinstance(X, tuple):
+                X = tuple([X])
             X += tuple([onehot])
         yield X, Y
 
-def prep_inputs(img,dose,par_l,par_r,
-                wl=True,normalize=True,
-                dose_norm=False,
-                withmask=True,
-                masked=False,
-                ipsi_contra=False,
-                single=False,
-                augment=False,
-                **kwargs):
+def prep_inputs(img,dose,masks,
+                config):
     """
     Function that receives the fitted arrays for image, dose, and masks and
     performs any necessary preprocessing on the data
@@ -237,42 +248,44 @@ def prep_inputs(img,dose,par_l,par_r,
 
     Parameters
     ----------
+    NOTE: parameters marked with * are pulled out of config, but descriptions
+    are still provided here for clarity.
+    
     img : np.array
         3D array of voxel data
     dose : np.array
         3D array of dose data
-    par_l : np.array
-        3D array of Parotid L mask, binary array.
-    par_r : np.array
-        3D array of Parotid R mask, binary array
-    wl : bool, optional
+    masks : list of np.array
+        List of 3D array of masks, binary array. Must all be same shape. Checks
+        against "single" parameter from config - if single is True, then all
+        mask arrays will be merged to one unified mask for evaluation. If
+        single is False, then each array will be leveraged independently
+    * wl : bool, optional
         Whether to apply window/level processing on the image
         voxel data. The default is True.
-    normalize : bool, optional
+    * normalize : bool, optional
         Whether to normalize the image data. If True, requires 
         wl == True to function. The default is True.
-    dose_norm : bool, optional
+    * dose_norm : bool, optional
         Whether or not to normalize dose values to 0.0-1.0.
         The default is False.
-    withmask : bool, optional
+    * withmask : bool, optional
         Whether to include mask array as a third channel of the returned 
         inputs. The default is True.
-    masked : bool, optional
+    * masked : bool, optional
         Whether to zero out all voxels not in the parotid (via pixelwise mult).
         The default is False.
-    ipsi_contra : bool, optional
+    * ipsi_contra : bool, optional
         Whether to set the high-dose parotid to be "left" - functionally making
         the left side always ipsilateral and the right side always 
         contralateral. This is done by summing the dose voxels in the parotid
         regions. The default is False.
-    single : bool, optional
+    * single : bool, optional
         Whether to return single-X (True --> whole head) or dual-X 
         (False --> boxed around parotids). The default is False.
-    augment : bool, optional
+    * augment : bool, optional
         Whether to perform augmentation (rotations, zooms). 
         The default is False.
-    **kwargs : dict
-        Not used, only for compatibility.
 
     Returns
     -------
@@ -280,6 +293,26 @@ def prep_inputs(img,dose,par_l,par_r,
         Tuple of arrays for volumetric data
 
     """
+    
+    # === Get parameters from config ===
+    single = config.getboolean('data_settings','single',fallback=False)
+    wl = config.getboolean('data_settings','wl',fallback=True)
+    wl_window = config.getint('data_settings','wl_window',fallback=400)
+    wl_level = config.getint('data_settings','wl_level',fallback=50)
+    normalize = config.getboolean('data_settings','normalize',fallback=True)
+    dose_norm = config.getboolean('data_settings','dose_norm',fallback=False)
+    withmask = config.getboolean('data_settings','withmask',fallback=True)
+    masked = config.getboolean('data_settings','masked',fallback=False)
+    ipsi_contra = config.getboolean(
+        'data_settings','ipsi_contra',fallback=False
+        )
+    augment = config.getboolean('data_settings','augment',fallback=False) 
+    
+    # === Handle mask inputs ===
+    if isinstance(masks,list):
+        masks = np.array(masks)
+        # axis 0 is the mask sequence, rest of the axes are volume dimensions
+    merged_mask = np.sum(masks,axis=0)
     
     # === Validate inputs, notify user of incompatibilities ===
     if all((wl is False, normalize is True)):
@@ -291,6 +324,7 @@ def prep_inputs(img,dose,par_l,par_r,
               "supported. Ipsi-contra standardization will be ignored.")
     
     # prep box shape and necessary margins to crop around centers of mass
+    # TODO - make box shape configurable
     if single is True:
         box_shape = (40,256,256)
     elif single is False:
@@ -299,118 +333,105 @@ def prep_inputs(img,dose,par_l,par_r,
     margin1 = round(box_shape[1] / 2)
     margin2 = round(box_shape[2] / 2)
     
-    merged_mask = par_l + par_r # single array with both masks
     if masked:
         # zeros out all voxels not in a parotid
         img = img * merged_mask
         dose = dose * merged_mask
     
     if wl:
-        img = window_level(img,normalize=normalize)
+        # TODO - include configurable window/level
+        img = window_level(img,
+                           window=wl_window,
+                           level=wl_level,
+                           normalize=normalize)
     
     if dose_norm:
         dose = dose_scaling(dose)
         
-    # TODO - split into sub-functions based on 'single' argument
-    if single is False:
-        com_l = np.round(mask_com(par_l)).astype(int)
-        com_r = np.round(mask_com(par_r)).astype(int)
+    """
+    Output is generated based off list of masks. Iterates through masks and
+    generates appropriate 4D channeled arrays for each. If single is True, then
+    masks are unified and a list of length 1 is created. Only one array is then
+    returned.
+    """
+    if single is True:
+        # if single-array return is desired, we replace the list of masks
+        # with a single-item list of the merged mask created previously
+        masks = [merged_mask]
         
-        img_l = img[com_l[0]-margin0:com_l[0]+margin0,
-                    com_l[1]-margin1:com_l[1]+margin1,
-                    com_l[2]-margin2:com_l[2]+margin2]
-        img_r = img[com_r[0]-margin0:com_r[0]+margin0,
-                    com_r[1]-margin1:com_r[1]+margin1,
-                    com_r[2]-margin2:com_r[2]+margin2]
-        dose_l = dose[com_l[0]-margin0:com_l[0]+margin0,
-                      com_l[1]-margin1:com_l[1]+margin1,
-                      com_l[2]-margin2:com_l[2]+margin2]
-        dose_r = dose[com_r[0]-margin0:com_r[0]+margin0,
-                      com_r[1]-margin1:com_r[1]+margin1,
-                      com_r[2]-margin2:com_r[2]+margin2]
-        mask_l = par_l[com_l[0]-margin0:com_l[0]+margin0,
-                       com_l[1]-margin1:com_l[1]+margin1,
-                       com_l[2]-margin2:com_l[2]+margin2]
-        mask_r = par_r[com_r[0]-margin0:com_r[0]+margin0,
-                       com_r[1]-margin1:com_r[1]+margin1,
-                       com_r[2]-margin2:com_r[2]+margin2]
-        
-        if withmask:
-            left = (img_l,dose_l,mask_l)
-            right = (img_r,dose_r,mask_r)
-        else:
-            left = (img_l,dose_l)
-            right = (img_r,dose_r)
-        
-        left = np.stack(left,axis=-1)
-        right = np.stack(right,axis=-1)
-                
-        if augment == True:
-            if np.random.random() > 0.5:
-                seed = np.random.random()
-                left = rotation(left,seed)
-                right = rotation(right,seed)
-                
-            if np.random.random() > 0.5:
-                seed = np.random.random()
-                left = [
-                    left[...,i] for i in range(left.shape[-1])
-                    ]
-                right = [
-                    right[...,i] for i in range(right.shape[-1])
-                    ]
-                for i in range(len(left)):
-                    left[i] = zoom_aug(left[i],seed=seed)
-                    right[i] = zoom_aug(right[i],seed=seed)
-                left = np.stack(left,axis=-1)
-                right = np.stack(right,axis=-1)
-
-        
-        if ipsi_contra:
-            if np.sum(right[...,1]) > np.sum(left[...,1]):
-                ipsi = np.flip(right,axis=2)
-                contra = np.flip(left,axis=2)
-                left = ipsi
-                right = contra
-        
-        left = left.astype(np.float32)
-        right = right.astype(np.float32)
-        return left, right
-    
-    elif single is True:
-        com = np.round(mask_com(merged_mask)).astype(int)
-        
-        img = img[com[0]-margin0:com[0]+margin0,
-                  com[1]-margin1:com[1]+margin1,
-                  com[2]-margin2:com[2]+margin2]
-        dose = dose[com[0]-margin0:com[0]+margin0,
-                    com[1]-margin1:com[1]+margin1,
-                    com[2]-margin2:com[2]+margin2]
-        mask = merged_mask[com[0]-margin0:com[0]+margin0,
+    output = []
+    for mask in masks:
+        # trims arrays to boxes around center of mass of mask being considered
+        com = np.round(mask_com(mask)).astype(int)
+        shaped_img = img[com[0]-margin0:com[0]+margin0,
+                         com[1]-margin1:com[1]+margin1,
+                         com[2]-margin2:com[2]+margin2]
+        shaped_dose = dose[com[0]-margin0:com[0]+margin0,
+                           com[1]-margin1:com[1]+margin1,
+                           com[2]-margin2:com[2]+margin2]
+        shaped_mask = mask[com[0]-margin0:com[0]+margin0,
                            com[1]-margin1:com[1]+margin1,
                            com[2]-margin2:com[2]+margin2]
         if withmask:
-            to_return = (img, dose, mask)
+            arraystuple = (shaped_img,shaped_dose,shaped_mask)
         else:
-            to_return = (img, dose)
-            
-        to_return = np.stack(to_return,axis=-1)
-            
-        if augment == True:
-            if np.random.random() > 0.5:
-                seed = np.random.random()
-                to_return = rotation(to_return, seed=seed)
-            if np.random.random() > 0.5:
-                seed = np.random.random()
-                to_return = [
-                    to_return[...,i] for i in range(to_return.shape[-1])
-                    ]
-                for i in range(len(to_return)):
-                    to_return[i] = zoom_aug(to_return[i],seed=seed)
-                to_return = np.stack(to_return,axis=-1)
+            arraystuple = (shaped_img,shaped_dose)
         
-        to_return = to_return.astype(np.float32)
-        return to_return
+        init_array = np.stack(arraystuple, axis=-1)
+        # now have an array of axes (Z,X,Y,channels)
+        
+        if augment is True:
+            if np.random.random() > 0.5:
+                seed = np.random.random()
+                init_array = rotation(init_array,seed)
+            if np.random.random() > 0.5:
+                seed = np.random.random()
+                # zoom is way faster on 3D arrays than 4D, so we'll
+                # deconstruct back to 3D components then re-stack
+                templist = [
+                    init_array[...,i] for i in range(init_array.shape[-1])
+                    ]
+                for i in range(len(templist)):
+                    templist[i] = zoom_aug(templist[i],seed=seed)
+                init_array = np.stack(templist,axis=-1)
+        
+        output.append(init_array)
+                
+    if ipsi_contra:
+        if len(output) == 2:
+            """
+            If 2 arrays, checks dose channel (last axis, position 1) sum to
+            determine which array is higher dose. If necessary, flips the
+            order and the orientation of the arrays to put higher dose first.
+            """
+            if np.sum(output[1][...,1]) > np.sum(output[0][...,1]):
+                ipsi = np.flip(output[1],axis=2)
+                contra = np.flip(output[0],axis=2)
+                output = [ipsi, contra]
+        elif len(output) == 1:
+            """
+            If 1 array, splits it down the middle and checks cumulative dose
+            on either side to determine ipsi vs contra. Positions higher-dose
+            side on the left.
+            """
+            halfway = output[0].shape[2] // 2
+            leftdose = output[0][:,:,:halfway,1]
+            rightdose = output[0][:,:,halfway:,1]
+            if np.sum(rightdose) > np.sum(leftdose):
+                output[0] = np.flip(output[0],axis=2)
+        else:
+            raise Exception(
+                "Number of output arrays {}".format(len(output)) +
+                " incompatible with ipsi_contra standardization."
+                )
+    output = [array.astype(np.float32) for array in output]
+    
+    if len(output) == 1:
+        to_return = output[0]
+    else:
+        to_return = tuple(output)
+    return to_return
+    
 
 def dose_expand(img,dose,im_info,dose_info):
     """
