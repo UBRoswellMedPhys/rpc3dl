@@ -110,7 +110,7 @@ def gen_inputs(config, labels, ptchars, training=True):
     source_dir = config.get('filepaths','source')
     if training is True:
         # add one 'fake' epoch to ensure we generate more than enough data
-        epochs = config.getint('data_settings','epochs') + 1
+        epochs = config.getint('model_settings','epochs') + 1
         class_balance = config.get(
             'data_settings','class_balance',fallback='oversample'
             )

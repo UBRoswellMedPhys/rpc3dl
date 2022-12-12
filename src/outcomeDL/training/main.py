@@ -30,7 +30,6 @@ def IDE_config():
     
     config = configparser.ConfigParser()
     config['data_settings'] = {
-        'epochs':EPOCHS,
         'normalize':True,
         'withmask':WITH_MASK,
         'masked':False,
