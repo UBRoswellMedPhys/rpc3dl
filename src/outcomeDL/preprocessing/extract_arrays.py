@@ -13,7 +13,10 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-import _preprocess_util as util
+if __name__ == '__main__':
+    import _preprocess_util as util
+else:
+    from . import _preprocess_util as util
 
 class ShapeError(BaseException):
     pass
@@ -128,9 +131,18 @@ def prepare_mask_array(imgarray,slicemap,corner,ss,oar,pixel_size=1):
 
 
 def prepare_dose_array(dosefile_or_list,pixel_size=1):
+    
+    # TODO - need to clean up this bit
     if isinstance(dosefile_or_list,list):
-        raw_array = util.merge_doses(*dosefile_or_list)
-        dosefile = dosefile_or_list[0]
+        if len(dosefile_or_list) == 1:
+            dosefile = dosefile_or_list[0]
+            raw_array = dosefile.pixel_array
+        else:
+            assert util.same_study(dosefile_or_list)
+            if not util.same_shape(dosefile_or_list):
+                dosefile_or_list = util.correct_array_shapes(dosefile_or_list)
+            raw_array = util.merge_doses(*dosefile_or_list)
+            dosefile = dosefile_or_list[0]
     else:
         dosefile = dosefile_or_list
         raw_array = dosefile.pixel_array
@@ -163,7 +175,17 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     true_z = true_z.tolist()
     return newdose, true_z, corner
     
-    
+def scrape_folder(folder):
+    sorted_files = {"CT":[], "RTDOSE":[], "RTSTRUCT":[]}
+    files = [os.path.join(folder,file) for file in os.listdir(folder) 
+             if file.endswith(".dcm")]
+    for file in files:
+        m = file.Modality
+        if m not in sorted_files.keys():
+            sorted_files[m] = [file]
+        else:
+            sorted_files[m].append(file)
+    return sorted_files
     
 
 if __name__ == '__main__':
@@ -185,16 +207,13 @@ if __name__ == '__main__':
         imgfiles = []
         dosefile = []
         ssfile = None
-        for file in os.listdir(testfolder):
-            if file.startswith("CT"):
-                imgfiles.append(pydicom.read_file(os.path.join(testfolder,file)))
-            elif file.startswith("RD"):
-                dosefile.append(pydicom.read_file(os.path.join(testfolder,file)))
-            elif file.startswith("RS"):
-                if "BODY" in file:
-                    continue
-                ssfile = pydicom.read_file(os.path.join(testfolder,file))
+        filedict = scrape_folder(testfolder)
+        imgfiles = filedict['CT']
+        dosefile = filedict['RTDOSE']
+        ssfile = filedict['RTSTRUCT']
                 
+        if not util.same_frame_of_reference(filedict):
+            pass # TODO - create functions to clean
         # acquire Frame of Reference UID from images (error if more than one)
         for i, file in enumerate(imgfiles):
             if i == 0:

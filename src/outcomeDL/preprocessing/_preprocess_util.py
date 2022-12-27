@@ -82,6 +82,24 @@ def find_parotid_num(ss,side):
 
 
 def new_slice_shape(file,pixel_size=1):
+    """
+    Function which calculates the shape of a destination array based on
+    requested pixel size. Only works with square pixels.
+    
+    Parameters
+    ----------
+    file : pydicom DICOM file object
+        DICOM object - must have PixelSpacing, Rows, and Columns attributes
+    pixel_size : float/int
+        Value to define, in mm, the pixel size. Default is 1.
+        
+    Returns
+    -------
+    new_cols : int
+        Number of columns needed in destination array
+    new_rows : int
+        Number of rows needed in destination array
+    """
     rows = file.Rows
     row_spacing = file.PixelSpacing[0]
     row_scaling = row_spacing / pixel_size
@@ -124,3 +142,107 @@ def mask_com(mask):
         return None
     com = np.sum(livecoords,axis=0) / len(livecoords)
     return com
+
+def correct_array_shapes(filelist):
+    """
+    Function which trims arrays of non-uniform shape to largest common array (fits all arrays).
+    Requires that all arrays in the list have the same corner position (ImagePositionPatient attribute).
+    
+    Parameters
+    ----------
+    dosefilelist : list of DICOM files
+        List containing pydicom loaded DICOM objects.
+    
+    Returns
+    -------
+    dosefilelist : list of DICOM files
+        Same list, but with the files modified to be shape-compatible.
+    """
+    if not same_position(filelist):
+        raise Exception("Files not corner-aligned, can't match them")
+    # first find the smallest array - note that pixel_array.shape is structured as Z, Rows, Columns
+    min_row = np.inf
+    min_col = np.inf
+    min_z = np.inf
+    # first loop through all to find the min for each axis
+    for file in filelist:
+        z, rows, cols = file.pixel_array.shape
+        min_row = min(rows, min_row)
+        min_col = min(cols, min_col)
+        min_z = min(z, min_z)
+    # next restructure each array as needed
+    for file in filelist:
+        new_array = file.pixel_array
+        if file.pixel_array.shape[0] > min_z:
+            new_array = new_array[:min_z,:,:]
+            file.GridFrameOffsetVector = file.GridFrameOffsetVector[:min_z]
+        if file.pixel_array.shape[1] > min_row:
+            new_array = new_array[:,:min_row,:]
+            file.Rows = min_row
+        if file.pixel_array.shape[2] > min_col:
+            new_array = new_array[:,:,:min_col]
+            file.Columns = min_col
+        file.PixelData = new_array.tobytes()
+    return filelist
+        
+def same_position(dicom_list):
+    """
+    Function to check to see if all DICOM files in a list have aligned corners.
+    Returns a boolean.
+    """
+    c,r,z = dicom_list[0].ImagePositionPatient
+    for obj in dicom_list:
+        tc, tr, tz = obj.ImagePositionPatient
+        if not all((tc == c, tr == r, tz == z)):
+            return False
+    return True
+
+def same_shape(dicom_list):
+    shapes = []
+    for file in dicom_list:
+        shapes.append(file.pixel_array.shape)
+    if len(set(shapes)) > 1:
+        shapematch = False
+    else:
+        shapematch = True
+    return shapematch
+
+def same_study(files):
+    """
+    Function which checks if files are all part of one Study. Uses the
+    StudyInstanceUID attribute. Accepts either list or dict of lists,
+    returns boolean.
+    """
+    
+    if isinstance(files,list):
+        filedict = {"main":files}
+    elif isinstance(files,dict):
+        filedict = files
+    UID = []
+    for key in filedict.keys():
+        for file in filedict[key]:
+            UID.append(file.StudyInstanceUID)
+    UID = list(set(UID))
+    if len(UID) > 1:
+        clean = False
+    elif len(UID) == 1:
+        clean = True
+    return clean
+
+def same_frame_of_reference(files):
+    
+    if isinstance(files,dict):
+        flatfiles = []
+        for k in files.keys():
+            flatfiles += files[k]
+        files = flatfiles
+    framerefs = []
+    for file in files:
+        if hasattr(file, "FrameOfReferenceUID"):
+            framerefs.append(file.FrameOfReferenceUID)
+    if len(set(framerefs)) == 1:
+        sameframe = True
+    else:
+        sameframe = False
+    return sameframe
+    

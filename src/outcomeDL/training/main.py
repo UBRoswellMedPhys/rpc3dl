@@ -112,9 +112,9 @@ def run(config):
                '018_126','018_128','018_130','018_131',
                'ANON_016','ANON_023','ANON_027']
     
-    exclude += ['018_011'] # dose data is wrong
+    exclude += ['018_011'] # missing dose file
     
-    # 018_019 has different shaped dose beams, dose data is wrong
+    # 018_019 fixed, just need to generate arrays
     # 018_033 is missing dose files, dose data is wrong
     # 018_038 has no label data
     # 018_056 dose expand error
@@ -280,14 +280,14 @@ def run(config):
 
 if __name__ == "__main__":
     import argparse
-    IDE = True
+    # IDE = True
     
-    if IDE is False:
-        cli = argparse.ArgumentParser()
-        cli.add_argument("configpath")
-        clargs = cli.parse_args()
-        config = configparser.ConfigParser()
-        config.read(clargs.configpath)
-    elif IDE is True:
-        config = IDE_config()
-    run(config)
+    # if IDE is False:
+    #     cli = argparse.ArgumentParser()
+    #     cli.add_argument("configpath")
+    #     clargs = cli.parse_args()
+    #     config = configparser.ConfigParser()
+    #     config.read(clargs.configpath)
+    # elif IDE is True:
+    #     config = IDE_config()
+    # run(config)
