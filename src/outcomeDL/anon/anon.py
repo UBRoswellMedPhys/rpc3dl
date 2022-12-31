@@ -104,7 +104,8 @@ def assign_anon_id(dcm,anonid):
 
 def anonymize_element(dataset, element, profile, iod):
     global UID_map
-    if 'instance uid' in element.description().lower():
+    if any(('instance uid' in element.description().lower(),
+            element.tag == Tag(('0020','0052')))):
         olduid = element.value
         if olduid in UID_map:
             element.value = UID_map[olduid]
@@ -154,3 +155,8 @@ def dummy_UID():
     UID += random.choice("123456789")
     return UID
 
+"""
+Guide for use:
+    Anonymization is done by passing the anonymizer callback to
+
+"""
