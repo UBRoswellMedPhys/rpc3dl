@@ -456,7 +456,7 @@ basic_profile = {
     Tag(('3006','00A6')): 'Z', # ROI Interpreter
     # Tag(('3006','0026')): 'Z', # ROI Name - Overriding this, need to keep
     Tag(('3006','0088')): 'X', # ROI Observation Description
-    Tag(('3006','0085')): 'X', # ROI Observation Label
+    # Tag(('3006','0085')): 'X', # ROI Observation Label
     Tag(('300A','0615')): 'Z', # RT Accessory Device Slot ID
     Tag(('300A','0611')): 'Z', # RT Accessory Holder Slot ID
     Tag(('3010','005A')): 'Z', # RT Physician Intent Narrative
