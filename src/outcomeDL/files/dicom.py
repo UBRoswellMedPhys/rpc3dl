@@ -10,6 +10,7 @@ import os
 import numpy as np
 import pydicom
 from pydicom.sequence import Sequence
+from pydicom.errors import InvalidDicomError
 
 """
 Main need: function that can iterate through DICOM files to determine which
@@ -133,13 +134,16 @@ def parotid_check(ss):
     rightcheck = any([name in r_common_names for name in checknames])
     return (leftcheck and rightcheck)
 
-def hierarchy(list_of_dcms):
+def hierarchy(list_of_dcms,level='patient'):
     """ Hierarchical organization of files as follows:
         PatientID
          |__StudyInstanceUID
              |__Modality
              
     To be used after loading a bulk batch of files into a list to sort them.
+    
+    level parameter sets what level to return. If patient, default behavior.
+    If study, steps down to make study top level
     """
     patientsort = organize_list(list_of_dcms,"PatientID")
     for patient_id, patient_files in patientsort.items():
@@ -151,7 +155,22 @@ def hierarchy(list_of_dcms):
                 study_files, "Modality"
                 )
     # Hierarchical data organization complete
+    if level.lower() == "study":
+        patientsort = _step_down_hierarchy(patientsort)
     return patientsort
+
+def _step_down_hierarchy(hier):
+    """Function to step one level down in the hierarchy. Note that this
+    will drop the current top level of the hierarchy.
+    
+    Useful if files are already organized by PatientID and you just need to
+    process at study-level.
+    """
+    new = {}
+    for subdict in hier.values():
+        for k,v in subdict.items():
+            new[k] = v
+    return new
 
 def validate_study(study_dict,oar_check_method=parotid_check):
     good = True
@@ -172,5 +191,39 @@ def validate_study(study_dict,oar_check_method=parotid_check):
             )
         return False
     # replace ss list with only valid ss
+    # TODO - double check this behavior, unsure if editing study_dict is ok
     study_dict['RTSTRUCT'] = keep_ss
     return True
+
+def main_filter(source_folder,
+                destination_folder,
+                modalitykeep=['CT','RTSTRUCT','RTDOSE']):
+    """ Assumes source_folder contains DICOM files of a single patientID,
+    checks studies, saves valid studies to subfolders in destination folder.
+    """
+    files = os.listdir(source_folder)
+    dcms = []
+    goodstudy = []
+    # loop to load all DICOM files
+    for file in files:
+        try:
+            dcm = pydicom.dcmread(os.path.join(source_folder,file))
+        except InvalidDicomError:
+            continue # skip anything that's not dicom
+        dcms.append(dcm)
+    hier = hierarchy(dcms,level='study') # organize files in hierarchy
+    for i, study, studydict in enumerate(hier.items()):
+        if validate_study(studydict):
+            goodstudy.append(study)
+            os.mkdir(os.path.join(destination_folder,str(study)))
+    for file in files:
+        try:
+            dcm = pydicom.dcmread(os.path.join(source_folder,file))
+        except InvalidDicomError:
+            continue # skip anything that's not dicom
+        if dcm.StudyInstanceUID in goodstudy and dcm.Modality in modalitykeep:
+            destfullpath = os.path.join(destination_folder,
+                                        str(dcm.StudyInstanceUID),
+                                        file)
+            pydicom.write_file(destfullpath,dcm)
+            
