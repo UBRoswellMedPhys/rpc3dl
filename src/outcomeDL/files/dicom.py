@@ -180,9 +180,9 @@ def validate_study(study_dict,oar_check_method=parotid_check):
             print("Missing critical modality:",modality)
             return False
     # files must all share a FrameOfReferenceUID
-    if not same_FoR(study_dict):
-        print("Too many frames of reference in study.")
-        return False
+    #if not same_FoR(study_dict):
+    #    print("Too many frames of reference in study.")
+    #    return False
     # check for whether the structure set file has what we need
     keep_ss = [ss for ss in study_dict['RTSTRUCT'] if oar_check_method(ss)]
     if len(keep_ss) != 1:
@@ -202,6 +202,7 @@ def main_filter(source_folder,
     checks studies, saves valid studies to subfolders in destination folder.
     """
     files = os.listdir(source_folder)
+    success = False
     dcms = []
     goodstudy = []
     # loop to load all DICOM files
@@ -212,9 +213,11 @@ def main_filter(source_folder,
             continue # skip anything that's not dicom
         dcms.append(dcm)
     hier = hierarchy(dcms,level='study') # organize files in hierarchy
-    for i, study, studydict in enumerate(hier.items()):
+    print("Number of studies: {}".format(len(list(hier.keys()))))
+    for i, (study, studydict) in enumerate(hier.items()):
         if validate_study(studydict):
             goodstudy.append(study)
+            success = True
             os.mkdir(os.path.join(destination_folder,str(study)))
     for file in files:
         try:
@@ -226,4 +229,4 @@ def main_filter(source_folder,
                                         str(dcm.StudyInstanceUID),
                                         file)
             pydicom.write_file(destfullpath,dcm)
-            
+    return success
