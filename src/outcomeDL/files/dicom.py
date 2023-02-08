@@ -185,11 +185,11 @@ def validate_study(study_dict,oar_check_method=parotid_check):
     #    return False
     # check for whether the structure set file has what we need
     keep_ss = [ss for ss in study_dict['RTSTRUCT'] if oar_check_method(ss)]
-    if len(keep_ss) != 1:
-        print(
-            "Bad number of ss files accepted: {}".format(len(keep_ss))
-            )
-        return False
+    #if len(keep_ss) != 1:
+    #    print(
+    #        "Bad number of ss files accepted: {}".format(len(keep_ss))
+    #        )
+    #    return False
     # replace ss list with only valid ss
     # TODO - double check this behavior, unsure if editing study_dict is ok
     study_dict['RTSTRUCT'] = keep_ss
