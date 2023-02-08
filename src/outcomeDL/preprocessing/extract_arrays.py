@@ -218,9 +218,11 @@ if __name__ == '__main__':
             testfolder = os.path.join(parent_dir,patientdir,studydir)
             savefolder = os.path.join(dest_dir,patientdir,studydir)
             print("Processing {}".format(studydir))
-            if files_present(savefolder):
-                print("Files already generated, skipping")
-                continue
+            if os.path.exists(savefolder):
+                # ensures we don't re-do work
+                if files_present(savefolder):
+                    print("Files already generated, skipping")
+                    continue
             
             imgfiles = []
             dosefile = []
