@@ -7,6 +7,7 @@ Created on Sat Sep 17 22:34:07 2022
 
 import traceback
 
+import os
 import pydicom
 import cv2
 import numpy as np
@@ -15,8 +16,8 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     import _preprocess_util as util
-else:
-    from . import _preprocess_util as util
+#else:
+#    from . import _preprocess_util as util
 
 class ShapeError(BaseException):
     pass
@@ -214,6 +215,8 @@ if __name__ == '__main__':
     import json
     for patientdir in os.listdir(parent_dir):
         print("Processing {}".format(patientdir))
+        if not os.path.exists(os.path.join(dest_dir,patientdir)):
+            os.mkdir(os.path.join(dest_dir,patientdir))
         for studydir in os.listdir(os.path.join(parent_dir,patientdir)):
             testfolder = os.path.join(parent_dir,patientdir,studydir)
             savefolder = os.path.join(dest_dir,patientdir,studydir)
@@ -232,6 +235,10 @@ if __name__ == '__main__':
             dosefile = filedict['RTDOSE']
             ssfile = filedict['RTSTRUCT']
             if any((len(imgfiles)==0,len(dosefile)==0,len(ssfile)==0)):
+                print("Missing some files: CT - {}, RD - {}, RS - {}".format(
+                    len(imgfiles),len(dosefile),len(ssfile)
+                    )
+                )
                 continue
                     
             # if not util.same_frame_of_reference(filedict):
@@ -262,6 +269,11 @@ if __name__ == '__main__':
             if any((len(dosefile) == 0, ssfile is None)):
                 print("Skipping {} due to missing file".format(testfolder))
                 continue
+            if len(ssfile) > 1:
+                print("Too many RS files, skipping...")
+                continue
+            else:
+                ssfile = ssfile[0]
             try:
                 imgarr, im_slicemap, im_corner = prepare_image_array(imgfiles,pixel_size)
             except AssertionError:
@@ -279,6 +291,10 @@ if __name__ == '__main__':
             except ValueError as exc:
                 print(traceback.format_exc())
                 print(exc)
+                continue
+            except AttributeError:
+                print("Not sure what the deal is, manually review")
+                # TODO - better debugging here
                 continue
             parotid_r_num = util.find_parotid_num(ssfile,'r')
             parotid_l_num = util.find_parotid_num(ssfile,'l')
