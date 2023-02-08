@@ -177,8 +177,8 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     
 def scrape_folder(folder):
     sorted_files = {"CT":[], "RTDOSE":[], "RTSTRUCT":[]}
-    files = [os.path.join(folder,file) for file in os.listdir(folder) 
-             if file.endswith(".dcm")]
+    files = [os.path.join(folder,file) for file in os.listdir(folder)]
+    files = [pydicom.dcmread(filepath) for filepath in files]
     for file in files:
         m = file.Modality
         if m == "RTSTRUCT":
