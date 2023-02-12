@@ -460,62 +460,106 @@ def dose_expand(img,dose,im_info,dose_info):
         for cropping and other pre-processing operations.
     """
     
+    # assert compatible pixel sizing
     assert dose_info['pixel_size_mm'] == im_info['pixel_size_mm']
+    
+    # instantiate an image-array size-match empty array
     dose_arr = np.zeros_like(img,dtype=np.float64)
+    
     #find number of pixels difference
     x_diff = dose_info['corner_coord'][0] - im_info['corner_coord'][0]
     x_diff = math.floor(x_diff)
-    if dose.shape[2] == img.shape[2] and x_diff == 1:
-        x_diff = 0 #little bugfix for rounding errors
-    if x_diff == 0 and dose.shape[2] > dose_arr.shape[2]:
-        dose = dose[:,:,0:dose_arr.shape[2]]
-        
     y_diff = dose_info['corner_coord'][1] - im_info['corner_coord'][1]
     y_diff = math.floor(y_diff)
+    
+    # sometimes rounding of the float creates issues, if shapes match, we
+    # enforce diff of 0 pixels
+    if dose.shape[2] == img.shape[2] and x_diff == 1:
+        x_diff = 0 
+    if dose.shape[1] == img.shape[1] and y_diff == 1:
+        y_diff = 0 
+        
+    # if front edge of either axis is aligned and dose array is larger than
+    # destination array, we can simply trim off from 0 index
+    if x_diff == 0 and dose.shape[2] > dose_arr.shape[2]:
+        dose = dose[:,:,0:dose_arr.shape[2]]
     if y_diff == 0 and dose.shape[1] > dose_arr.shape[1]:
-        dose = dose[:,:,0:dose_arr.shape[1]]
+        dose = dose[:,0:dose_arr.shape[1],:]
     
-    z_min = np.squeeze(np.argwhere(np.array(im_info['z_list'],dtype=np.float32) == float(dose_info['z_list'][0])))
-    minadjust = 0
-    while z_min.size == 0:
-        minadjust += 1
-        z_min = np.squeeze(np.argwhere(np.array(im_info['z_list'],dtype=np.float32) == float(dose_info['z_list'][0+minadjust])))
-    z_max = np.squeeze(np.argwhere(np.array(im_info['z_list'],dtype=np.float32) == float(dose_info['z_list'][-1])))
-    maxadjust = 0
-    while z_max.size == 0:
-        maxadjust += 1
-        z_max = np.squeeze(np.argwhere(np.array(im_info['z_list'],dtype=np.float32) == float(dose_info['z_list'][-1-maxadjust])))
+    # dose z list in order from min to max
+    mindex = 0
+    maxdex = 0
+    dose_zmin = float(dose_info['z_list'][mindex])
+    dose_zmax = float(dose_info['z_list'][maxdex-1])
+    im_z_list = np.array(im_info['z_list'],dtype=np.float32)
     
-    if all((x_diff >= 0, y_diff >= 0)):
-        dose_arr[z_min:z_max+1,
-                 y_diff:min(y_diff+dose.shape[1],dose_arr.shape[1]),
-                 x_diff:min(x_diff+dose.shape[2],dose_arr.shape[2])] = dose[minadjust:dose.shape[0] - maxadjust,:,:]
-    elif all((x_diff < 0, y_diff < 0)):
-        dose_arr[z_min:z_max,:,:] = dose[
-            minadjust:dose.shape[0] - maxadjust,
-            -y_diff:-y_diff+img.shape[1],
-            -x_diff:-x_diff+img.shape[2]
-            ]
-    elif all((x_diff < 0, y_diff >= 0)):
-        dose_arr[
-            z_min:z_max+1,y_diff:min(y_diff+dose.shape[1],dose_arr.shape[1]),:
-                ] = dose[
-                    minadjust:dose.shape[0] - maxadjust,
-                    :,
-                    -x_diff:-x_diff+img.shape[2]
-                    ]
-    elif all((x_diff >= 0, y_diff < 0)):
-        dose_arr[
-            z_min:z_max+1,:,x_diff:min(x_diff+dose.shape[2],dose_arr.shape[2])
-            ] = dose[
-                minadjust:dose.shape[0] - maxadjust,
-                -y_diff:-y_diff+img.shape[1],
-                :
-                ]
-    else:
-        print(x_diff,y_diff)
-        raise ValueError("Weird dimensions, X/Y are not both either smaller or larger in img/dose relationship.")
+    # if dose z-axis is fully contained by image array (it should be) then
+    # no adjustment is needed. however, if dose array extends beyond image
+    # array, we need to walk in the min-max boundaries to "drop" the overhang
+    while dose_zmin not in im_z_list:
+        mindex += 1
+        dose_zmin = float(dose_info['z_list'][mindex])
+    while dose_zmax not in im_z_list:
+        maxdex -= 1
+        dose_zmax = float(dose_info['z_list'][maxdex-1])
+        
+    # finalize the array indices of the min and max
+    z_min = np.squeeze(np.argwhere(im_z_list == dose_zmin))
+    z_max = np.squeeze(np.argwhere(im_z_list == dose_zmax))
+    
+    # configure the slicing for filling destination array from source array
+    z_dest = range(z_min,z_max+1)
+    z_source = range(mindex,dose.shape[0] + maxdex)
+    z_source, z_dest = match_slice_size(z_source,z_dest)
+    
+    if y_diff >= 0:
+        y_dest = range(
+            y_diff,min(y_diff+dose.shape[1],dose_arr.shape[1])
+            )
+        y_source = range(dose.shape[1])
+    elif y_diff < 0:
+        y_dest = range(dose_arr.shape[1])
+        y_source = range(-y_diff,-y_diff+img.shape[1])
+    y_source, y_dest = match_slice_size(y_source,y_dest)
+    
+    if x_diff >= 0:
+        x_dest = range(
+            x_diff,min(x_diff+dose.shape[2],dose_arr.shape[2])
+            )
+        x_source = range(dose.shape[2])
+    elif x_diff < 0:
+        x_dest = range(dose_arr.shape[2])
+        x_source = range(-x_diff,-x_diff+img.shape[2])
+    x_source, x_dest = match_slice_size(x_source,x_dest)
+        
+    dose_arr[z_dest,y_dest,x_dest] = dose[z_source,y_source,x_source]
+    
     return dose_arr
+
+def match_slice_size(source,dest):
+    """
+    Function to ensure array slicing for an axis is of the same length.
+    This is required for broadcasting. This assumes start-aligned voxels,
+    so if there is a mismatch then the longer range will be trimmed down.
+    
+    Parameters
+    ----------
+    source : range
+        Range of source index to be converted to slice
+    dest : range
+        Range of destination index to be converted to slice
+        
+    Returns
+    -------
+    source_slice : slice
+        Fitted slice, ready for pass into array slicing
+    dest_slice : slice
+        Fitted slice, ready for pass into array slicing
+    """
+    length = min(len(source),len(dest)) # find shortest range
+    source_slice = slice(source.start,source.start+length)
+    dest_slice = slice(dest.start,dest.start+length)
+    return source_slice, dest_slice
 
 def mask_com(mask):
     """
@@ -712,3 +756,21 @@ def pad_image(source,endshape,padvalue=0.0):
     slices = tuple(slices)
     new[slices] = source
     return new
+
+
+if __name__ == '__main__':
+    for i in [1,2,3,4]:
+        debugfolder = r"D:\arrays_to_review\{}".format(i)
+        #debugfolder = r"D:\extracteddata\018_002"
+        img = np.load(os.path.join(debugfolder,'CT.npy'))
+        dose = np.load(os.path.join(debugfolder,'dose.npy'))
+        with open(os.path.join(debugfolder,'ct_metadata.json')) as f:
+            im_info = json.load(f)
+            f.close()
+        with open(os.path.join(debugfolder,'dose_metadata.json')) as f:
+            dose_info = json.load(f)
+            f.close()
+        x = dose_expand(img, dose, im_info, dose_info)
+        print(i)
+        print(x.shape)
+        

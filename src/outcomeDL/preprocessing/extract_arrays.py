@@ -14,10 +14,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-if __name__ == '__main__':
-    import _preprocess_util as util
-#else:
-#    from . import _preprocess_util as util
+import _preprocess_util as util
 
 class ShapeError(BaseException):
     pass
