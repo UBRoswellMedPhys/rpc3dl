@@ -7,6 +7,7 @@ Created on Sat Sep 17 22:34:07 2022
 
 import traceback
 
+import os
 import pydicom
 import cv2
 import numpy as np
@@ -15,8 +16,8 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     import _preprocess_util as util
-else:
-    from . import _preprocess_util as util
+#else:
+#    from . import _preprocess_util as util
 
 class ShapeError(BaseException):
     pass
@@ -177,116 +178,156 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     
 def scrape_folder(folder):
     sorted_files = {"CT":[], "RTDOSE":[], "RTSTRUCT":[]}
-    files = [os.path.join(folder,file) for file in os.listdir(folder) 
-             if file.endswith(".dcm")]
+    files = [os.path.join(folder,file) for file in os.listdir(folder)]
+    files = [pydicom.dcmread(filepath) for filepath in files]
     for file in files:
         m = file.Modality
+        if m == "RTSTRUCT":
+            # validate approval status of RS files
+            if str(file.ApprovalStatus).upper() != "APPROVED":
+                continue
         if m not in sorted_files.keys():
             sorted_files[m] = [file]
         else:
             sorted_files[m].append(file)
     return sorted_files
+
+def files_present(folderpath):
+    filenames = [
+        "CT.npy",
+        "CT_metadata.json",
+        "dose.npy",
+        "dose_metadata.json",
+        "parotid_r_mask.npy",
+        "parotid_l_mask.npy"
+    ]
+    missing = any([file not in os.listdir(folderpath) for file in filenames])
+    return not missing
     
 
 if __name__ == '__main__':
-    parent_dir = r"D:\H_N"
-    dest_dir = r"D:\extracteddata"
+    parent_dir = '/home/johnasbach/Research/cleaned_dcm'
+    dest_dir = '/home/johnasbach/Research/arrays'
     
     pixel_size = 1
     
     import os
     import json
-    for subdir in os.listdir(parent_dir):
-        testfolder = os.path.join(parent_dir,subdir)
-        if not all((os.path.isdir(testfolder),
-                    subdir.startswith("ANON"))):
-            continue
-        if subdir.startswith("ANON_001") or subdir.startswith("ANON_017"):
-            continue
-        print("Processing {}".format(subdir))
-        imgfiles = []
-        dosefile = []
-        ssfile = None
-        filedict = scrape_folder(testfolder)
-        imgfiles = filedict['CT']
-        dosefile = filedict['RTDOSE']
-        ssfile = filedict['RTSTRUCT']
-                
-        if not util.same_frame_of_reference(filedict):
-            pass # TODO - create functions to clean
-        # acquire Frame of Reference UID from images (error if more than one)
-        for i, file in enumerate(imgfiles):
-            if i == 0:
-                img_ref_uid = file.FrameOfReferenceUID
-            else:
-                assert img_ref_uid == file.FrameOfReferenceUID, \
-                    "Too many reference frames in image files for " + \
-                    "patient {}".format(subdir)
+    for patientdir in os.listdir(parent_dir):
+        print("Processing {}".format(patientdir))
+        if not os.path.exists(os.path.join(dest_dir,patientdir)):
+            os.mkdir(os.path.join(dest_dir,patientdir))
+        for studydir in os.listdir(os.path.join(parent_dir,patientdir)):
+            testfolder = os.path.join(parent_dir,patientdir,studydir)
+            savefolder = os.path.join(dest_dir,patientdir,studydir)
+            print("Processing {}".format(studydir))
+            if os.path.exists(savefolder):
+                # ensures we don't re-do work
+                if files_present(savefolder):
+                    print("Files already generated, skipping")
+                    continue
+            
+            imgfiles = []
+            dosefile = []
+            ssfile = None
+            filedict = scrape_folder(testfolder)
+            imgfiles = filedict['CT']
+            dosefile = filedict['RTDOSE']
+            ssfile = filedict['RTSTRUCT']
+            if any((len(imgfiles)==0,len(dosefile)==0,len(ssfile)==0)):
+                print("Missing some files: CT - {}, RD - {}, RS - {}".format(
+                    len(imgfiles),len(dosefile),len(ssfile)
+                    )
+                )
+                continue
                     
-        # filter dose files for only those that match frame of reference
-        accepted_dosefiles = []
-        for file in dosefile:
-            if file.FrameOfReferenceUID == img_ref_uid:
-                accepted_dosefiles.append(file)
-        assert len(accepted_dosefiles) > 0, \
-            "No valid dose files found for patient {}".format(subdir)
-        dosefile = accepted_dosefiles
-        
-        
-        
-        if any((len(dosefile) == 0, ssfile is None)):
-            print("Skipping {} due to missing file".format(testfolder))
-            continue
-        try:
-            imgarr, im_slicemap, im_corner = prepare_image_array(imgfiles,pixel_size)
-        except AssertionError:
-            print("Issue with data validation for {}".format(testfolder))
-            continue
+            # if not util.same_frame_of_reference(filedict):
+            #    pass # TODO - create functions to clean
 
-        except ShapeError:
-            print("Skipping {} due to different shape images".format(testfolder))
-            continue
-        
-        if len(dosefile) == 1:
-            dosefile = dosefile[0]
-        try:
-            dosearr, d_slicemap, d_corner = prepare_dose_array(dosefile,pixel_size)
-        except ValueError as exc:
-            print(traceback.format_exc())
-            print(exc)
-            continue
-        parotid_r_num = util.find_parotid_num(ssfile,'r')
-        parotid_l_num = util.find_parotid_num(ssfile,'l')
-        if any((parotid_r_num is None, parotid_l_num is None)):
-            print("Skipping {} due to missing contour".format(testfolder))
-            continue
-        par_r_mask = prepare_mask_array(
-            imgarr,im_slicemap,im_corner,ssfile,parotid_r_num,pixel_size
-            )
-        par_l_mask = prepare_mask_array(
-            imgarr,im_slicemap,im_corner,ssfile,parotid_l_num,pixel_size
-            )
-        savefolder = os.path.join(dest_dir,subdir)
-        if not os.path.exists(savefolder):
-            os.mkdir(savefolder)
-        
+            # acquire Frame of Reference UID from images (error if more than one)
+            images_all_one_FoR = True
+            for i, file in enumerate(imgfiles):
+                if i == 0:
+                    img_ref_uid = file.FrameOfReferenceUID
+                else:
+                    if img_ref_uid != file.FrameOfReferenceUID:
+                        images_all_one_FoR = False
+            if not images_all_one_FoR:
+                print("Images not all same FoR, bypassing...")
+                continue
+                        
+                        
+            # filter dose files for only those that match frame of reference
+            accepted_dosefiles = []
+            for file in dosefile:
+                if file.FrameOfReferenceUID == img_ref_uid:
+                    accepted_dosefiles.append(file)
+            dosefile = accepted_dosefiles
+            
+            
+            
+            if any((len(dosefile) == 0, ssfile is None)):
+                print("Skipping {} due to missing file".format(testfolder))
+                continue
+            if len(ssfile) > 1:
+                print("Too many RS files, skipping...")
+                continue
+            else:
+                ssfile = ssfile[0]
+            try:
+                imgarr, im_slicemap, im_corner = prepare_image_array(imgfiles,pixel_size)
+            except AssertionError:
+                print("Issue with data validation for {}".format(testfolder))
+                continue
 
-        im_header = {'z_list':im_slicemap,
-                      'corner_coord':im_corner,
-                      'pixel_size_mm':pixel_size}
-        np.save(os.path.join(savefolder,"CT.npy"),imgarr)
-        with open(os.path.join(savefolder,"CT_metadata.json"),"w+") as f:
-            json.dump(im_header,f)
-            f.close()
-        
-        # dose
-        d_header = {'z_list':d_slicemap,
-                    'corner_coord':d_corner,
-                    'pixel_size_mm':pixel_size}
-        np.save(os.path.join(savefolder,"dose.npy"),dosearr)
-        with open(os.path.join(savefolder,"dose_metadata.json"),"w+") as f:
-            json.dump(d_header,f)
-            f.close()
-        
-        np.save(os.path.join(savefolder,"parotid_r_mask.npy"),par_r_mask)
-        np.save(os.path.join(savefolder,"parotid_l_mask.npy"),par_l_mask)
+            except ShapeError:
+                print("Skipping {} due to different shape images".format(testfolder))
+                continue
+            
+            if len(dosefile) == 1:
+                dosefile = dosefile[0]
+            try:
+                dosearr, d_slicemap, d_corner = prepare_dose_array(dosefile,pixel_size)
+            except ValueError as exc:
+                print(traceback.format_exc())
+                print(exc)
+                continue
+            except AttributeError:
+                print("Not sure what the deal is, manually review")
+                # TODO - better debugging here
+                continue
+            parotid_r_num = util.find_parotid_num(ssfile,'r')
+            parotid_l_num = util.find_parotid_num(ssfile,'l')
+            if any((parotid_r_num is None, parotid_l_num is None)):
+                print("Skipping {} due to missing contour".format(testfolder))
+                continue
+            par_r_mask = prepare_mask_array(
+                imgarr,im_slicemap,im_corner,ssfile,parotid_r_num,pixel_size
+                )
+            par_l_mask = prepare_mask_array(
+                imgarr,im_slicemap,im_corner,ssfile,parotid_l_num,pixel_size
+                )
+            
+            if not os.path.exists(savefolder):
+                os.mkdir(savefolder)
+            
+
+            im_header = {'z_list':im_slicemap,
+                        'corner_coord':im_corner,
+                        'pixel_size_mm':pixel_size}
+            np.save(os.path.join(savefolder,"CT.npy"),imgarr)
+            with open(os.path.join(savefolder,"CT_metadata.json"),"w+") as f:
+                json.dump(im_header,f)
+                f.close()
+            
+            # dose
+            d_header = {'z_list':d_slicemap,
+                        'corner_coord':d_corner,
+                        'pixel_size_mm':pixel_size}
+            np.save(os.path.join(savefolder,"dose.npy"),dosearr)
+            with open(os.path.join(savefolder,"dose_metadata.json"),"w+") as f:
+                json.dump(d_header,f)
+                f.close()
+            
+            np.save(os.path.join(savefolder,"parotid_r_mask.npy"),par_r_mask)
+            np.save(os.path.join(savefolder,"parotid_l_mask.npy"),par_l_mask)
