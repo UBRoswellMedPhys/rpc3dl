@@ -88,12 +88,7 @@ def run(config):
     
     print("Patient characteristics and labels successfully loaded.")
     
-    exclude = [
-        '414794',
-        '341122',
-        '400444',
-        '436315',
-        '428612']
+    exclude = ['428612']
     # no need to review 428612 at this time, it has an empty mask
     
     all_pts = [
