@@ -177,19 +177,24 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     return newdose, true_z, corner
     
 def scrape_folder(folder):
-    sorted_files = {"CT":[], "RTDOSE":[], "RTSTRUCT":[]}
+    sorted_files = {"CT":[],"RTDOSE":[],"RTSTRUCT":[]}
     files = [os.path.join(folder,file) for file in os.listdir(folder)]
     files = [pydicom.dcmread(filepath) for filepath in files]
+    temphold = []
     for file in files:
         m = file.Modality
         if m == "RTSTRUCT":
             # validate approval status of RS files
             if str(file.ApprovalStatus).upper() != "APPROVED":
+                temphold.append(file)
                 continue
         if m not in sorted_files.keys():
             sorted_files[m] = [file]
         else:
             sorted_files[m].append(file)
+    if all((len(temphold) > 0,
+            len(sorted_files['RTSTRUCT']) == 0)):
+        sorted_files['RTSTRUCT'] = [temphold[0]]
     return sorted_files
 
 def files_present(folderpath):

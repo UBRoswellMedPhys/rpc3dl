@@ -114,13 +114,14 @@ def gen_inputs(config, labels, ptchars, training=True):
         class_balance = config.get(
             'data_settings','class_balance',fallback='oversample'
             )
+        shuffle = config.getboolean('data_settings','shuffle',fallback=True)
     elif training is False:
         # if not for training, we only want one full set
         epochs = 1
         class_balance = None
+        shuffle = False
+
     batch_size = config.getint('model_settings','batch_size')
-    
-    shuffle = config.getboolean('data_settings','shuffle',fallback=True)
     single = config.getboolean('data_settings','single',fallback=False)
     
     
@@ -192,7 +193,13 @@ def gen_inputs(config, labels, ptchars, training=True):
     # to the appropriate preprocessing
     for patientID in patientlist:
         # load all necessary files        
-        folder = os.path.join(source_dir, patientID)
+        folder = os.path.join(source_dir, str(patientID))
+
+        contents = os.listdir(folder)
+        if len(contents) == 1:
+            # clause to allow study-level walkdown
+            folder = os.path.join(folder,contents[0])
+        
         dose = np.load(os.path.join(folder,"dose.npy"))
         img = np.load(os.path.join(folder,"CT.npy"))
         with open(os.path.join(folder,"dose_metadata.json")) as f:
@@ -328,7 +335,7 @@ def prep_inputs(img,dose,masks,
     if single is True:
         box_shape = (40,256,256)
     elif single is False:
-        box_shape = (48,108,108)
+        box_shape = (50,128,128)
     margin0 = round(box_shape[0] / 2)
     margin1 = round(box_shape[1] / 2)
     margin2 = round(box_shape[2] / 2)
@@ -362,7 +369,9 @@ def prep_inputs(img,dose,masks,
     output = []
     for mask in masks:
         # trims arrays to boxes around center of mass of mask being considered
-        com = np.round(mask_com(mask)).astype(int)
+        com = mask_com(mask)
+        if com is not None:
+            com = np.round(mask_com(mask)).astype(int)
         shaped_img = img[com[0]-margin0:com[0]+margin0,
                          com[1]-margin1:com[1]+margin1,
                          com[2]-margin2:com[2]+margin2]
@@ -472,8 +481,10 @@ def dose_expand(img,dose,im_info,dose_info):
         
     y_diff = dose_info['corner_coord'][1] - im_info['corner_coord'][1]
     y_diff = math.floor(y_diff)
+    if dose.shape[1] == img.shape[1] and y_diff == 1:
+        y_diff = 0
     if y_diff == 0 and dose.shape[1] > dose_arr.shape[1]:
-        dose = dose[:,:,0:dose_arr.shape[1]]
+        dose = dose[:,0:dose_arr.shape[1],:]
     
     z_min = np.squeeze(np.argwhere(np.array(im_info['z_list'],dtype=np.float32) == float(dose_info['z_list'][0])))
     minadjust = 0

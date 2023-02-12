@@ -47,9 +47,9 @@ def get_model(config):
     return model
 
 
-def dual_no_pt_chars(width=108, 
-                     height=108, 
-                     depth=48,
+def dual_no_pt_chars(width=128, 
+                     height=128, 
+                     depth=50,
                      channels=2,
                      base_filters=64):
     """Build a 3D convolutional neural network model."""
@@ -100,9 +100,9 @@ def dual_no_pt_chars(width=108,
     model = keras.Model((l_inputs,r_inputs), outputs)
     return model
 
-def dual_w_ptchars(width=108,
-                   height=108,
-                   depth=48,
+def dual_w_ptchars(width=128,
+                   height=128,
+                   depth=50,
                    channels=2,
                    non_vol_len=38,
                    base_filters=64):
@@ -144,7 +144,7 @@ def dual_w_ptchars(width=108,
     x = layers.BatchNormalization()(x)
     x = layers.GlobalAveragePooling3D()(x)
     
-    ptchar_inputs = keras.Input((non_vol_len))
+    ptchar_inputs = keras.Input(shape=(non_vol_len,))
     y = layers.Dense(units=BASE,activation="relu")(ptchar_inputs)
     y = layers.Dense(units=BASE,activation="relu")(y)
     y = layers.Dense(units=BASE,activation="relu")(y)
@@ -228,7 +228,7 @@ def single_w_pt_chars(width=256,
 
     x = layers.GlobalAveragePooling3D()(x)
     
-    ptchar_inputs = keras.Input((non_vol_len))
+    ptchar_inputs = keras.Input(shape=(non_vol_len,))
     y = layers.Dense(units=BASE,activation="relu")(ptchar_inputs)
     y = layers.Dense(units=BASE,activation="relu")(y)
     y = layers.Dense(units=BASE,activation="relu")(y)

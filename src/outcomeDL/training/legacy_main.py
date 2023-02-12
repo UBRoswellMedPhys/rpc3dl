@@ -40,11 +40,10 @@ def IDE_config():
         'ipsi_contra':False,
         'single':SINGLE,
         'class_balance':CLASS_BAL,
-        'augment':False,
+        'augment':True,
         'batch_size':BATCH_SIZE,
         'patient_chars':True,
-        'shuffle':True,
-        'anonymized':False
+        'shuffle':True
         }
     
     config['model_settings'] = {
@@ -55,52 +54,94 @@ def IDE_config():
         }
     
     config['filepaths'] = {
-        'source': "/home/johnasbach/Research/arrays",
-        'labelfile': "/home/johnasbach/Research/resources/early_dry_mouth_label.csv",
-        'artifacts': "/home/johnasbach/Research/training_runs",
-        'ohe_pt_chars': "/home/johnasbach/Research/resources/ohe_patient_char.csv"
+        'source': r"D:\extracteddata",
+        'labelfile': r"D:\extracteddata\latelabels.csv",
+        'artifacts': r"D:\nn_training_results",
+        'ohe_pt_chars': r"D:\H_N\ohe_patient_char.csv"
         }
     
     return config
 
 def run(config):
-    print("Beginning model training process")
-
-    SOURCE_FOLDER = config.get('filepaths', 'source')
-    ANON = config.getboolean('data_settings','anonymized')
-
-    if ANON:
-        idcol = 'ANON_ID'
-    elif not ANON:
-        idcol = 'MRN'    
+    SOURCE_FOLDER = config.get('filepaths', 'source')    
     
     # === Prep one-hot encoded patient characteristics ===
     onehotptchars = pd.read_csv(config.get('filepaths','ohe_pt_chars'))
-    onehotptchars = onehotptchars.set_index(idcol)
+    if "MRN" in onehotptchars.columns:
+        onehotptchars = onehotptchars.set_index("MRN")
+    elif "ANON_ID" in onehotptchars.columns:
+        onehotptchars = onehotptchars.set_index("ANON_ID")
     onehotptchars.replace(to_replace="90+",value=90,inplace=True)
     onehotptchars['age'] = onehotptchars['age'].astype(int)
     
     labels = pd.read_csv(config['filepaths']['labelfile'])
-    labels = labels.set_index('MRN')
-    all_labels = labels.to_dict()['label']
-                
-    all_oh = onehotptchars.dropna() # only want to save patients that we have all data
+    # === Build mapper ===
+    labelmap = {}
+    for i,row in labels.iterrows():
+        if row['OLDID'] not in labelmap.keys():
+            labelmap[row['OLDID']] = row['ID']
+            
+    old_id_oh = pd.DataFrame(index=labelmap.keys(),
+                             columns=onehotptchars.columns)
+    for k,v in labelmap.items():
+        if v in list(onehotptchars.index):
+            old_id_oh.at[k,:] = onehotptchars.loc[v]
+        
+    all_oh = onehotptchars.append(old_id_oh)
+    all_oh = all_oh.dropna() # only want to save patients that we have all data
     
-    print("Patient characteristics and labels successfully loaded.")
+    # merge old ID / new ID into a single dictionary
+    # fine to have same patients represented twice (once by both old and new)
+    # because patient call will only happen on one or the other
+    oldid_labels = pd.DataFrame(data={'ID':labels['OLDID'].values,
+                                      'label':labels['label'].values})
+    oldid_labels = oldid_labels.dropna()
+    oldid_labels = oldid_labels.set_index('ID')
+    oldid_labels = oldid_labels.to_dict()['label']
     
-    exclude = [
-        '414794',
-        '341122',
-        '400444',
-        '436315',
-        '428612']
-    # no need to review 428612 at this time, it has an empty mask
+    newid_labels = pd.DataFrame(data={'ID':labels['ID'].values,
+                                      'label':labels['label'].values})
+    newid_labels = newid_labels.dropna()
+    newid_labels = newid_labels.set_index('ID')
+    newid_labels = newid_labels.to_dict()['label']
+    
+    all_labels = {}
+    for d in [oldid_labels,newid_labels]:
+        for k,v in d.items():
+            all_labels[k] = v
+    
+    exclude = ['018_019','018_033','018_038','018_056','018_069','018_089',
+              '018_091','018_102','018_117','018_120',
+               '018_126','018_128','018_130','018_131',
+               'ANON_016','ANON_023','ANON_027']
+    
+    exclude += ['018_011'] # missing dose file
+    
+    # 018_019 fixed, just need to generate arrays
+    # 018_033 is missing dose files, dose data is wrong
+    # 018_038 has no label data
+    # 018_056 dose expand error
+    # 018_069 no label data
+    # 018_089 has different slice thicknesses, dose data is no good
+    
+    # 018_091 has a dose expand error, needs review
+    # 018_102 - unknown, needs review
+    # 018_117 - unknown
+    # 018_120 - unknown
+    # 018_126 - unknown
+    # 018_128 - unknown
+    # 018_130 - unknown
+    # 018_131 - unknown
+    # ANON_016 - expand dose doesn't work
+    # ANON_023 no label data (need to double check MRN mappings)
+    # ANON_027 same as above
+    
     
     all_pts = [
-        int(pt) for pt in os.listdir(SOURCE_FOLDER) if all((
+        pt for pt in os.listdir(SOURCE_FOLDER) if all((
             os.path.isdir(os.path.join(SOURCE_FOLDER,pt)),
             pt not in exclude,
-            int(pt) in all_labels.keys()
+            pt in all_labels.keys()
             ))
         ]
     
@@ -109,12 +150,7 @@ def run(config):
     np.random.shuffle(pos_pt)
     np.random.shuffle(neg_pt)
     
-    print("Patients split into pos and neg, {} and {}, respectively".format(
-        len(pos_pt),
-        len(neg_pt)
-    ))
-
-    val_pts = list(pos_pt[:20]) + list(neg_pt[:10])
+    val_pts = list(pos_pt[:10]) + list(neg_pt[:8])
     print("Validation patient IDs:",val_pts)
     train_pts = [pt for pt in all_pts if pt not in val_pts]
     
@@ -178,8 +214,7 @@ def run(config):
         num_inputs=num_inputs
         )
     
-    print("Loading validation data in whole")
-    valX, valY = next(val_batch) # generates entire validation dataset
+    val_data = next(val_batch) # generates entire validation dataset
     
     # is this necessary? should it be modifiable?
     def lr_schedule(epoch,lr):
@@ -190,42 +225,34 @@ def run(config):
         else:
             return max(lr*0.5, 0.00001)
         
-    callback1 = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
-    callback2 = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=20,
-        restore_best_weights=True
-        )
+    callback = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
     
     if config.getboolean('data_settings','withmask',fallback=True):
         channels = 3
     else:
         channels = 2
     
-    print("Building model")
     model = get_model(config)
     
-    print("Compiling model")
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
-            lr=config.getfloat('model_settings', 'initial_learnrate')
+            learning_rate=config.getfloat('model_settings', 'initial_learnrate')
             ),
         loss=tf.keras.losses.BinaryCrossentropy(),
         metrics=[tf.keras.metrics.BinaryAccuracy(),
                  tf.keras.metrics.FalseNegatives(),
                  tf.keras.metrics.FalsePositives()]
         )
-    #model.summary()
-
+    model.summary()
     history = model.fit(
         x=batch_input,
         steps_per_epoch=math.floor(
             dataset_size/config.getint('model_settings','batch_size')
             ),
-        validation_data=(valX,valY),
+        validation_data=val_data,
         epochs=config.getint('model_settings','epochs'),
         verbose=1,
-        callbacks=[callback1,callback2])
+        callbacks=[callback])
     
     # once complete, save run details
     destination = config.get('filepaths','artifacts')
@@ -243,15 +270,10 @@ def run(config):
         config.write(configwritefile)
         configwritefile.close()
     
-    validation_df = pd.DataFrame(
-        index=list(val_labels.keys()),
-        columns=["True","Predicted"]
-        )
-    predicted = model.predict(valX)
-    validation_df['True'] = np.squeeze(valY)
-    validation_df['Predicted'] = np.squeeze(predicted)
-    validation_df.index = validation_df.index.rename("MRN")
-    validation_df.to_csv(os.path.join(new_run_dest,"validation_results.csv"))
+    with open(os.path.join(new_run_dest,"val_patients.txt"),"w+") as f:
+        for pt in val_pts:
+            f.write(pt + "\n")
+        f.close()
         
     tf.keras.utils.plot_model(
         model,
@@ -261,15 +283,14 @@ def run(config):
 
 if __name__ == "__main__":
     import argparse
-    IDE = False
+    # IDE = True
     
-    if IDE is False:
-        cli = argparse.ArgumentParser()
-        cli.add_argument("configpath")
-        clargs = cli.parse_args()
-        config = configparser.ConfigParser()
-        config.read(clargs.configpath)
-    elif IDE is True:
-        config = IDE_config()
-    
-    run(config)
+    # if IDE is False:
+    #     cli = argparse.ArgumentParser()
+    #     cli.add_argument("configpath")
+    #     clargs = cli.parse_args()
+    #     config = configparser.ConfigParser()
+    #     config.read(clargs.configpath)
+    # elif IDE is True:
+    #     config = IDE_config()
+    # run(config)
