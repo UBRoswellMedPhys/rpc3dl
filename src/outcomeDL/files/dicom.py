@@ -216,6 +216,9 @@ def main_filter(source_folder,
         if validate_study(studydict):
             goodstudy.append(study)
             os.mkdir(os.path.join(destination_folder,str(study)))
+            
+    # studies all evaluated at this point, now we move files over
+    #
     for file in files:
         try:
             dcm = pydicom.dcmread(os.path.join(source_folder,file))
