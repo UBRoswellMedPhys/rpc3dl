@@ -22,7 +22,7 @@ def IDE_config():
     
     LEARNRATE = 0.001
     WITH_MASK = True
-    SINGLE = True
+    SINGLE = False
     BATCH_SIZE = 3
     CLASS_BAL = 'oversample'
     EPOCHS = 80
@@ -44,7 +44,7 @@ def IDE_config():
         'batch_size':BATCH_SIZE,
         'patient_chars':True,
         'shuffle':True,
-        'anonymized':False
+        'anonymized':True
         }
     
     config['model_settings'] = {
@@ -55,10 +55,10 @@ def IDE_config():
         }
     
     config['filepaths'] = {
-        'source': "/home/johnasbach/Research/arrays",
-        'labelfile': "/home/johnasbach/Research/resources/early_dry_mouth_label.csv",
-        'artifacts': "/home/johnasbach/Research/training_runs",
-        'ohe_pt_chars': "/home/johnasbach/Research/resources/ohe_patient_char.csv"
+        'source': r"D:\extracteddata",
+        'labelfile': r"D:\extracteddata\latelabels.csv",
+        'artifacts': r"D:\nn_training_results",
+        'ohe_pt_chars': r"D:\H_N\ohe_patient_char.csv"
         }
     
     return config
@@ -81,21 +81,28 @@ def run(config):
     onehotptchars['age'] = onehotptchars['age'].astype(int)
     
     labels = pd.read_csv(config['filepaths']['labelfile'])
-    labels = labels.set_index('MRN')
+    labels[idcol] = labels[idcol].astype(str)
+    
+    # clause for old anon data, for testing. won't trip in prod.
+    if "OLDID" in labels.columns:
+        for i,row in labels.iterrows():
+            labels.loc[i,'ANON_ID'] = labels.iloc[i]['OLDID']
+    
+    labels = labels.set_index(idcol)
     all_labels = labels.to_dict()['label']
                 
     all_oh = onehotptchars.dropna() # only want to save patients that we have all data
     
     print("Patient characteristics and labels successfully loaded.")
     
-    exclude = ['428612']
+    exclude = ['428612', '018_019','018_120','018_091']
     # no need to review 428612 at this time, it has an empty mask
     
     all_pts = [
-        int(pt) for pt in os.listdir(SOURCE_FOLDER) if all((
+        pt for pt in os.listdir(SOURCE_FOLDER) if all((
             os.path.isdir(os.path.join(SOURCE_FOLDER,pt)),
             pt not in exclude,
-            int(pt) in all_labels.keys()
+            pt in all_labels.keys()
             ))
         ]
     
@@ -110,6 +117,10 @@ def run(config):
     ))
 
     val_pts = list(pos_pt[:20]) + list(neg_pt[:10])
+    
+    # TODO - DO NOT KEEP LINE BELOW
+    val_pts = list(pos_pt[:2]) + list(neg_pt[:2])
+    
     print("Validation patient IDs:",val_pts)
     train_pts = [pt for pt in all_pts if pt not in val_pts]
     
@@ -141,14 +152,16 @@ def run(config):
         config=config,
         labels=train_labels,
         ptchars=ptchars,
-        training=True
+        training=True,
+        verbose=False
         )
 
     valinputdata = util.gen_inputs(
         config=config,
         labels=val_labels,
         ptchars=ptchars,
-        training=False
+        training=False,
+        verbose=True
         )
     
     if config.getboolean('data_settings','single') is True:
@@ -170,7 +183,7 @@ def run(config):
     val_batch = util.batcher(
         valinputdata,
         batch_size=len(val_pts),
-        num_inputs=num_inputs
+        num_inputs=num_inputs,
         )
     
     print("Loading validation data in whole")
@@ -256,7 +269,7 @@ def run(config):
 
 if __name__ == "__main__":
     import argparse
-    IDE = False
+    IDE = True
     
     if IDE is False:
         cli = argparse.ArgumentParser()

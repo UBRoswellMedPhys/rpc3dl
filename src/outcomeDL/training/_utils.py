@@ -52,7 +52,7 @@ def batcher(generator,batch_size,num_inputs=3):
             Y = np.array(Y)
             yield X_final, Y
 
-def gen_inputs(config, labels, ptchars, training=True):
+def gen_inputs(config, labels, ptchars, training=True,verbose=False):
     """
     Core data generator for neural network training. This plays a key role as
     it provides us flexibility in how we define data processing.
@@ -192,6 +192,8 @@ def gen_inputs(config, labels, ptchars, training=True):
     # this is the actual generator loop which loads the files and passes them
     # to the appropriate preprocessing
     for patientID in patientlist:
+        if verbose is True:
+            print("Loading data for {}".format(patientID))
         # load all necessary files        
         folder = os.path.join(source_dir, str(patientID))
 
@@ -200,16 +202,16 @@ def gen_inputs(config, labels, ptchars, training=True):
             # clause to allow study-level walkdown
             folder = os.path.join(folder,contents[0])
         
-        dose = np.load(os.path.join(folder,"dose.npy"))
-        img = np.load(os.path.join(folder,"CT.npy"))
+        dose = np.load(os.path.join(folder,"dose.npy")).astype(np.float32)
+        img = np.load(os.path.join(folder,"CT.npy")).astype(np.float32)
         with open(os.path.join(folder,"dose_metadata.json")) as f:
             dose_info = json.load(f)
             f.close()
         with open(os.path.join(folder,"CT_metadata.json")) as f:
             im_info = json.load(f)
             f.close()
-        par_r = np.load(os.path.join(folder,"parotid_r_mask.npy"))
-        par_l = np.load(os.path.join(folder,"parotid_l_mask.npy"))
+        par_r = np.load(os.path.join(folder,"parotid_r_mask.npy")).astype(int)
+        par_l = np.load(os.path.join(folder,"parotid_l_mask.npy")).astype(int)
         
         # refit dose array to be same shape as image array - see the docstring
         # for the dose_expand function for more details
@@ -335,7 +337,7 @@ def prep_inputs(img,dose,masks,
     if single is True:
         box_shape = (40,256,256)
     elif single is False:
-        box_shape = (50,128,128)
+        box_shape = (40,96,96)
     margin0 = round(box_shape[0] / 2)
     margin1 = round(box_shape[1] / 2)
     margin2 = round(box_shape[2] / 2)
