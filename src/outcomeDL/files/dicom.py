@@ -173,7 +173,6 @@ def _step_down_hierarchy(hier):
     return new
 
 def validate_study(study_dict,oar_check_method=parotid_check):
-    good = True
     # must have files for all three essential modalities
     for modality in ['CT','RTDOSE','RTSTRUCT']:
         if modality not in study_dict.keys():

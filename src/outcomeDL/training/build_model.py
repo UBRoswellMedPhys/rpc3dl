@@ -14,22 +14,25 @@ def get_model(config):
     model architecture for what is requested.
     """
     
+    input_shape = config.get('data_settings','volume_shape')
+    input_shape = input_shape.split(",")
+    input_shape = [int(dim) for dim in input_shape]
+    
     if config.getboolean('data_settings','withmask',fallback=True) is True:
         channels = 3
     else:
         channels = 2
         
+    input_shape.append(channels)
     # base_filters = config.getint('model_settings','base_filters')
     
     with_chars = config.getboolean('data_settings','patient_chars')
     
     if config.getboolean('data_settings','single') is True:
-        input_shape = (40,256,256,channels)
         model = single_resnet(input_shape=input_shape,
                               with_chars=with_chars,
                               nonvol=38)
     else:
-        input_shape = (40,96,96,channels)
         model = dual_resnet(input_shape=input_shape,
                             with_chars=with_chars,
                             nonvol=38)
@@ -46,7 +49,7 @@ def res_block(input_shape,
     ## First layer
     conv1 = layers.Conv3D(
         filters=filters, kernel_size=(5, 5, 5),strides=(2,2,2), 
-        padding="same"
+        padding="same", activation="relu"
         )(inputs)
     conv11 = layers.Conv3D(
         filters=filters, kernel_size=(5, 5, 5), strides=(1,1,1), 
@@ -65,9 +68,9 @@ def res_block(input_shape,
 
 def organ_path(input_shape=(40,96,96,3)):
     inputs = keras.Input(input_shape)
-    res1 = res_block(input_shape,filters=16)(inputs)
+    res1 = res_block(input_shape,filters=32)(inputs)
     res2 = res_block(res1.shape[1:],filters=32)(res1)
-    res3 = res_block(res2.shape[1:],filters=16)(res2)
+    res3 = res_block(res2.shape[1:],filters=32)(res2)
     organ_model = keras.Model(inputs=inputs,outputs=res3)
     return organ_model
 
@@ -87,7 +90,7 @@ def dual_resnet(input_shape=(40,96,96,3),
     right_parotid = organ_path(input_shape)(input2)
     merged = layers.Concatenate()([left_parotid,right_parotid])
     merged = layers.Conv3D(
-        filters=64,kernel_size=(5,5,5),strides=(1,1,1),
+        filters=64,kernel_size=(5,3,3),strides=(1,1,1),
         padding="valid",activation="relu"
         )(merged)
     pooled = layers.GlobalAveragePooling3D()(merged)

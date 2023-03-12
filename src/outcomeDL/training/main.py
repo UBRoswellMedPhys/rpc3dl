@@ -20,16 +20,17 @@ from build_model import get_model
 
 def IDE_config():
     
-    LEARNRATE = 0.001
+    LEARNRATE = 0.00001
     WITH_MASK = True
     SINGLE = False
-    BATCH_SIZE = 3
+    BATCH_SIZE = 4
     CLASS_BAL = 'oversample'
     EPOCHS = 80
     BASE_FILTERS = 16
     
     config = configparser.ConfigParser()
     config['data_settings'] = {
+        'volume_shape':"40,128,128", # 40,96,96 for dual/40,256,256 for single
         'normalize':True,
         'withmask':WITH_MASK,
         'masked':False,
@@ -37,14 +38,21 @@ def IDE_config():
         'wl_window':400,
         'wl_level':50,
         'dose_norm':False,
-        'ipsi_contra':False,
+        'ipsi_contra':True,
         'single':SINGLE,
         'class_balance':CLASS_BAL,
-        'augment':False,
+        'augment':True,
         'batch_size':BATCH_SIZE,
         'patient_chars':True,
         'shuffle':True,
-        'anonymized':True
+        'anonymized':True,
+        'decription':"trying different labels"
+        }
+    
+    config['data_augmentation'] = {
+        'augment':True,
+        'zoom_range':0.33,
+        'rotate_range':30
         }
     
     config['model_settings'] = {
@@ -56,7 +64,7 @@ def IDE_config():
     
     config['filepaths'] = {
         'source': r"D:\extracteddata",
-        'labelfile': r"D:\extracteddata\latelabels.csv",
+        'labelfile': r"D:\extracteddata\early_drymouth_majority_labels.csv",
         'artifacts': r"D:\nn_training_results",
         'ohe_pt_chars': r"D:\H_N\ohe_patient_char.csv"
         }
@@ -116,10 +124,14 @@ def run(config):
         len(neg_pt)
     ))
 
-    val_pts = list(pos_pt[:20]) + list(neg_pt[:10])
-    
-    # TODO - DO NOT KEEP LINE BELOW
-    val_pts = list(pos_pt[:2]) + list(neg_pt[:2])
+    val_pts = list(pos_pt[:13]) + list(neg_pt[:13])
+    val_pts = ['018_116', '018_090', '018_103', '018_115', '018_058', 
+               '018_047', '018_030', '018_042', '018_108', '018_041', 
+               '018_035', '018_057', '018_121', '018_060', '018_002', 
+               '018_111', '018_022', '018_112', '018_006', '018_124', 
+               '018_127', '018_009', '018_100', '018_031', '018_110', 
+               '018_109']
+
     
     print("Validation patient IDs:",val_pts)
     train_pts = [pt for pt in all_pts if pt not in val_pts]
@@ -191,24 +203,19 @@ def run(config):
     
     # is this necessary? should it be modifiable?
     def lr_schedule(epoch,lr):
-        if epoch < 10:
-            return lr
-        elif 10 <= epoch < 20:
-            return lr*0.9
+        if epoch < 20:
+            return 0.00001
+        elif 20 <= epoch < 40:
+            return 0.0005
         else:
-            return max(lr*0.5, 0.00001)
+            return max(lr*0.5, 0.000005)
         
     callback1 = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
     callback2 = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=20,
+        monitor='val_binary_accuracy',
+        patience=50,
         restore_best_weights=True
         )
-    
-    if config.getboolean('data_settings','withmask',fallback=True):
-        channels = 3
-    else:
-        channels = 2
     
     print("Building model")
     model = get_model(config)
@@ -233,7 +240,8 @@ def run(config):
         validation_data=(valX,valY),
         epochs=config.getint('model_settings','epochs'),
         verbose=1,
-        callbacks=[callback1,callback2])
+        callbacks=[callback1] # <----- REMOVED EARLYSTOPPING
+    )
     
     # once complete, save run details
     destination = config.get('filepaths','artifacts')

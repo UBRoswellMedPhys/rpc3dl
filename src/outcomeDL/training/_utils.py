@@ -231,7 +231,8 @@ def gen_inputs(config, labels, ptchars, training=True,verbose=False):
         X = prep_inputs(img,
                         expanded_dose,
                         masks=[par_l,par_r],
-                        config=config)
+                        config=config,
+                        training=training)
         if ptchars is not None:
             try:
                 onehot = ptchars.loc[patientID].values.astype(np.float32)
@@ -244,7 +245,7 @@ def gen_inputs(config, labels, ptchars, training=True,verbose=False):
         yield X, Y
 
 def prep_inputs(img,dose,masks,
-                config):
+                config,training=True):
     """
     Function that receives the fitted arrays for image, dose, and masks and
     performs any necessary preprocessing on the data
@@ -315,7 +316,9 @@ def prep_inputs(img,dose,masks,
     ipsi_contra = config.getboolean(
         'data_settings','ipsi_contra',fallback=False
         )
-    augment = config.getboolean('data_settings','augment',fallback=False) 
+    augment = config.getboolean('data_augmentation','augment',fallback=False)
+    zoom_range = config.getfloat('data_augmentation','zoom_range')
+    rotate_range = config.getint('data_augmentation','rotate_range')
     
     # === Handle mask inputs ===
     if isinstance(masks,list):
@@ -328,16 +331,11 @@ def prep_inputs(img,dose,masks,
         # normalize will be ignored
         print("Voxel normalization can only occur with window/level filtering.")
         print("Normalization will not be performed.")
-    if all((single is True, ipsi_contra is True)):
-        print("Ipsi-contra standardization with single-array return not yet " +
-              "supported. Ipsi-contra standardization will be ignored.")
     
     # prep box shape and necessary margins to crop around centers of mass
-    # TODO - make box shape configurable
-    if single is True:
-        box_shape = (40,256,256)
-    elif single is False:
-        box_shape = (40,96,96)
+    input_shape = config.get('data_settings','volume_shape')
+    input_shape = input_shape.split(",")
+    box_shape = [int(dim) for dim in input_shape]
     margin0 = round(box_shape[0] / 2)
     margin1 = round(box_shape[1] / 2)
     margin2 = round(box_shape[2] / 2)
@@ -391,10 +389,13 @@ def prep_inputs(img,dose,masks,
         init_array = np.stack(arraystuple, axis=-1)
         # now have an array of axes (Z,X,Y,channels)
         
-        if augment is True:
+        if augment is True and training is True:
+            # data augmentation must be disabled for validation data.
             if np.random.random() > 0.5:
                 seed = np.random.random()
-                init_array = rotation(init_array,seed)
+                init_array = rotation(
+                    init_array,seed, degree_range=rotate_range
+                    )
             if np.random.random() > 0.5:
                 seed = np.random.random()
                 # zoom is way faster on 3D arrays than 4D, so we'll
@@ -403,7 +404,9 @@ def prep_inputs(img,dose,masks,
                     init_array[...,i] for i in range(init_array.shape[-1])
                     ]
                 for i in range(len(templist)):
-                    templist[i] = zoom_aug(templist[i],seed=seed)
+                    templist[i] = zoom_aug(
+                        templist[i],seed=seed,zoom_range=zoom_range
+                        )
                 init_array = np.stack(templist,axis=-1)
         
         output.append(init_array)
@@ -687,9 +690,23 @@ def rotation(array,seed=None,degree_range=15):
         )
     return array
 
-def zoom_aug(array,seed=None,zoom_range=0.1):
+def zoom_aug(array,seed=None,zoom_range=0.25):
     """
+    Function which performs zoom operation for data augmentation. Receives
+    N-D array of inputs and applies zoom in all axes. If input is a 4D array,
+    skips the channels axis.
     
+    Parameters
+    ----------
+    array : np.array
+        N-D array to be rotated
+    seed : float
+        Float between 0.0 and 1.0, used to determine how much to zoom. If None
+        provided, generates a random float.
+    zoom_range : float
+        Float representation of how much above or below 1.0 scaling we are
+        willing to zoom, i.e. 0.25 default value allows for zoom range of
+        0.75 - 1.25
     """
     if seed is None:
         seed = np.random.random()
