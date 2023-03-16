@@ -1,0 +1,506 @@
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_051 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_052 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_053 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_054 - failure
+1 approved plans found | 1 dose files found that match plan reference | 1 structure sets found that match UID reference | 189 CT files associated with structure set | 
+Done with 017_055 - success
+1 approved plans found | 1 dose files found that match plan reference | 1 structure sets found that match UID reference | 193 CT files associated with structure set | 
+Done with 017_056 - success
+Missing RTPLAN | Missing RTDOSE | 
+Done with 017_056_w_PET - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_057 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_058 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_059 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_060 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_061 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_062 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_063 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_064 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_065 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_066 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_067 - failure
+Missing RTPLAN | Missing RTDOSE | 
+Done with 017_068 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_069 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_070 - failure
+1 approved plans found | 2 dose files found that match plan reference | 
+Done with 017_071 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_072 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_073 - failure
+Missing RTPLAN | Missing RTDOSE | 
+Done with 017_074 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_075 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_076 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_077 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_078 - failure
+1 approved plans found | 2 dose files found that match plan reference | 
+Done with 017_079 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_080 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_081 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_082 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_083 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_084 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_085 - failure
+1 approved plans found | 1 dose files found that match plan reference | 1 structure sets found that match UID reference | 189 CT files associated with structure set | 
+Done with 017_086 - success
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_087 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_088 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_089 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_090 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_091 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_092 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_093 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_094 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_095 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_096 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_097 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_098 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_099 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_100 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_101 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_102 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_103 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_104 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_105 - failure
+Missing CT | 
+Done with 017_106 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_107 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_108 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_109 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_110 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_111 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_112 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_113 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_114 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_115 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_116 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_117 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_118 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_119 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_120 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_121 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_122 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_123 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_124 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_125 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_126 - failure
+1 approved plans found | 1 dose files found that match plan reference | 1 structure sets found that match UID reference | 191 CT files associated with structure set | 
+Done with 017_127 - success
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_128 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_129 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_130 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_131 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_132 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_133 - failure
+Missing RTPLAN | Missing RTDOSE | 
+Done with 017_134 - failure
+Missing RTPLAN | Missing RTDOSE | 
+Done with 017_135 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_136 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_137 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_138 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_139 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_140 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_141 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_142 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_143 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_144 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_145 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_146 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_147 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 017_148 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_001 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_002 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_003 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_004 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_005 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_006 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_007 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_008 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_009 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_010 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_011 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_012 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_013 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_014 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_015 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_016 - failure
+Missing RTPLAN | 
+Done with 018_017 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_018 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_019 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_020 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_021 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_022 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_023 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_024 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_025 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_026 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_027 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_028 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_029 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_030 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_031 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_032 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_033 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_034 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_035 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_036 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_037 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_038 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_039 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_040 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_041 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_042 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_043 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_044 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_045 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_046 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_047 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_048 - failure
+Missing RTPLAN | Missing RTDOSE | 
+Done with 018_049 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_050 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_051 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_052 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_053 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_054 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_055 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_056 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_057 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_058 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_059 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_060 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_061 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_062 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_063 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_064 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_065 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_066 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_067 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_068 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_069 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_070 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_071 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_072 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_073 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_074 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_075 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_076 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_077 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_078 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_079 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_080 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_081 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_082 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_083 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_084 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_085 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_086 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_087 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_088 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_089 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_090 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_091 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_092 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_093 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_094 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_095 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_096 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_097 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_098 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_099 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_100 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_101_skip - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_102 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_103 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_104 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_105 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_106 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_107 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_108 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_109 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_110 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_111 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_112 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_113 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_114 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_115 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_116 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_117 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_118 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_119 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_120 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_121 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_122 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_123 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_124 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_125 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_126 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_127 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_128 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_129 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_130 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_131 - failure
+1 approved plans found | 1 dose files found that match plan reference | 0 structure sets found that match UID reference | 
+Done with 018_132 - failure
+Missing RTPLAN | 
+Done with ANON_001 - failure
+Missing RTPLAN | 
+Done with ANON_002 - failure
+Missing RTPLAN | 
+Done with ANON_004 - failure
+Missing RTPLAN | 
+Done with ANON_006 - failure
+Missing RTPLAN | 
+Done with ANON_007 - failure
+Missing RTPLAN | 
+Done with ANON_008 - failure
+Missing RTPLAN | 
+Done with ANON_009 - failure
+Missing RTPLAN | 
+Done with ANON_011 - failure
+Missing RTPLAN | 
+Done with ANON_013 - failure
+Missing RTPLAN | 
+Done with ANON_014 - failure
+Missing RTPLAN | 
+Done with ANON_016 - failure
+Missing RTPLAN | 
+Done with ANON_017 - failure
+Missing RTPLAN | 
+Done with ANON_019 - failure
+Missing RTPLAN | 
+Done with ANON_020 - failure
+Missing RTPLAN | 
+Done with ANON_021 - failure
+Missing RTPLAN | 
+Done with ANON_023 - failure
+Missing RTPLAN | 
+Done with ANON_025 - failure
+Missing RTPLAN | 
+Done with ANON_027 - failure
+Missing RTPLAN | 
+Done with ANON_031 - failure
+Missing RTPLAN | 
+Done with ANON_032 - failure
+Missing RTPLAN | 
+Done with ANON_034 - failure
+Missing RTPLAN | 
+Done with ANON_035 - failure

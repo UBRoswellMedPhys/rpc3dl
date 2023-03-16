@@ -22,6 +22,14 @@ there may be use in the future in allowing customization of parameters to set
 what the requirements of file acceptance are.
 """
 
+def is_dicom_file(filename):
+    with open(filename, 'rb') as f:
+        header = f.read(4)
+        if header == b'DICM':
+            return True
+        else:
+            return False
+
 def organize_list(dcmlist,attribute):
     org_dict = {}
     for dcm in dcmlist:
@@ -155,8 +163,13 @@ def hierarchy(list_of_dcms,level='patient'):
                 study_files, "Modality"
                 )
     # Hierarchical data organization complete
-    if level.lower() == "study":
+    
+    # Step down as needed based on requested organization level
+    if level.lower() in ["study","modality"]:
         patientsort = _step_down_hierarchy(patientsort)
+        if level.lower() == "modality":
+            patientsort = _step_down_hierarchy(patientsort)
+    
     return patientsort
 
 def _step_down_hierarchy(hier):
@@ -193,6 +206,86 @@ def validate_study(study_dict,oar_check_method=parotid_check):
     # TODO - double check this behavior, unsure if editing study_dict is ok
     study_dict['RTSTRUCT'] = keep_ss
     return True
+
+def get_planning_study(filepaths):
+    status = ""
+    dcms = [pydicom.dcmread(file) for file in filepaths]
+    modality_dict = hierarchy(dcms,level="modality")
+    for m in ['CT','RTPLAN','RTDOSE','RTSTRUCT']:
+        if m not in modality_dict.keys():
+            status += "Missing {} | ".format(m)
+    
+    if status != "":
+        print(status)
+        return None
+    # first validate plan files
+    approved_plans = []
+    for file in modality_dict['RTPLAN']:
+        if str(file.ApprovalStatus).upper() == "APPROVED":
+            approved_plans.append(file)
+            
+    # if we don't find just one approved plan, abort filtering
+    num_approved_plans = len(approved_plans)
+    status += "{} approved plans found | ".format(num_approved_plans)
+    if num_approved_plans != 1:
+        print(status)
+        return None
+    else:
+        modality_dict['RTPLAN'] = approved_plans
+        plan = modality_dict['RTPLAN'][0]
+        ss_ref_uid = plan.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+        plan_ref_uid = plan.SOPInstanceUID
+    
+    paired_dose = []
+    for dose in modality_dict['RTDOSE']:
+        refplan = dose.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
+        if refplan == plan_ref_uid:
+            # ensure dose object refers to approved plan object
+            paired_dose.append(dose)
+    status += "{} dose files found that match plan reference | ".format(
+        len(paired_dose)
+        )
+    if len(paired_dose) < 1:
+        print(status)
+        return None
+    else:
+        modality_dict['RTDOSE'] = paired_dose
+        
+    correct_ss = []    
+    for ss in modality_dict['RTSTRUCT']:
+        if ss.SOPInstanceUID == ss_ref_uid:
+            # ensure ss object is correctly tied to plan object
+            correct_ss.append(ss)
+    status += "{} structure sets found that match UID reference | ".format(
+        len(correct_ss)
+        )
+    if len(correct_ss) != 1:
+        print(status)
+        return None
+    else:
+        modality_dict['RTSTRUCT'] = correct_ss
+    
+    ss = modality_dict['RTSTRUCT'][0]
+    refseq = ss.ReferencedFrameOfReferenceSequence[0].RTReferencedStudySequence[0].RTReferencedSeriesSequence[0].ContourImageSequence
+    instanceuids = []
+    for ea in refseq:
+        instanceuids.append(ea.ReferencedSOPInstanceUID)
+        
+    ct = []
+    for img in modality_dict['CT']:
+        if img.SOPInstanceUID in instanceuids:
+            # only accept CT images associated with structure set object
+            ct.append(img)
+    modality_dict['CT'] = ct
+    status += "{} CT files associated with structure set | ".format(len(ct))
+    
+    dcmfiles = []
+    for modalityfiles in modality_dict.values():
+        for ea in modalityfiles:
+            dcmfiles.append(ea)
+    print(status)
+    return dcmfiles
+        
 
 def main_filter(source_folder,
                 destination_folder,

@@ -1,4 +1,4 @@
-import dicom
+import _dicom_util as dicom
 import pydicom
 
 import os
