@@ -203,6 +203,9 @@ def cleanpath(path):
     return path
 
 def main(args):
+    print("Welcome to the DICOM bulk anonymization tool.")
+    print("This tool conforms with the Basic Application " +
+          "Level Confidentiality Profile")
     # TODO - break this up into subfunctions as necessary, too bulky right now
     destroot = cleanpath(args.dest)
     # if destination directory does not exist, create it
