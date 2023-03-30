@@ -163,15 +163,16 @@ class PatientInfo:
                  df,
                  id_col = 'MRN',
                  time_col = 'RT Completion Date'):
+        df = df.rename(columns={col:col.strip() for col in df.columns})
         self.data = df.reset_index(drop=True)
         self.id_col = id_col
         self.time_col = time_col
         
         # unsure about stuff below this for now
-        includesRT = self.data['Treatment Type'].apply(
+        includesRT = self.data['Treatment Type'].astype(str).apply(
             lambda x: "rt" in x.lower()
             )
-        self.data = self.raw_data[includesRT]
+        self.data = self.data[includesRT]
     
     def scrub_data(self):
         """
@@ -203,17 +204,24 @@ class PatientInfo:
         self.scrubbed_data['Smoking Stats'] = self.data[
             'Current Smoking Status (within 1 month of treatment)'
             ]
-        self.scrubbed_data['Age'] = self.data['Age at Diagnosis'] # need to further anonymize
-        self.scrubbed_data['Cancer Type'] = resolve_grouped_field(
-            self.data,"Type"
+        # anonymization of age requires 90+ be grouped
+        self.scrubbed_data['Age'] = self.data['Age at Diagnosis'].apply(
+            lambda x: 90 if int(x) > 90 else int(x)
             )
+        
+        # 'Cancer Type' is not useful - almost all are squamous cell carc
+        
+        # self.scrubbed_data['Cancer Type'] = resolve_grouped_field(
+        #     self.data,"Type"
+        #     )
+        
         self.scrubbed_data['Disease Site'] = resolve_grouped_field(
             self.data, "Disease Site"
             )
         self.scrubbed_data['T Stage'] = self.data['T Stage Clinical']
         self.scrubbed_data['N Stage'] = self.data['N stage']
         self.scrubbed_data['M Stage'] = self.data['M stage']
-        self.scrubbed_data['HPV Status'] = self.data['HPV Status']
+        self.scrubbed_data['HPV status'] = self.data['HPV status']
         self.scrubbed_data['Treatment Type'] = self.data['Treatment Type']
         # =========
         # possibly add other columns in some other space, or as reference, unsure
@@ -241,7 +249,7 @@ def resolve_grouped_field(df,fieldname):
     for col in subdf.columns:
         cat_name = re.sub(fieldex,r"\1",col)
         subdf[col] = subdf[col].apply(
-            lambda x: cat_name if x == 'checked'.lower().strip() else ''
+            lambda x: cat_name if x.lower().strip() == 'checked' else ''
         )
     returnseries = subdf.apply(lambda x: "".join(x), axis=1)
     return returnseries

@@ -134,7 +134,7 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
     if isinstance(dosefile_or_list,list):
         if len(dosefile_or_list) == 1:
             dosefile = dosefile_or_list[0]
-            raw_array = dosefile.pixel_array
+            raw_array = dosefile.pixel_array * dosefile.DoseGridScaling
         else:
             assert util.same_study(dosefile_or_list)
             if not util.same_shape(dosefile_or_list):
@@ -143,7 +143,7 @@ def prepare_dose_array(dosefile_or_list,pixel_size=1):
             dosefile = dosefile_or_list[0]
     else:
         dosefile = dosefile_or_list
-        raw_array = dosefile.pixel_array
+        raw_array = dosefile.pixel_array * dosefile.DoseGridScaling
     assert dosefile.ImageOrientationPatient == [1,0,0,0,1,0]
     z_list = np.array(dosefile.GridFrameOffsetVector)
     true_z = z_list + dosefile.ImagePositionPatient[-1]
