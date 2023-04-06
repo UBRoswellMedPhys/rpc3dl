@@ -43,6 +43,7 @@
         outcomeDL/training/main.py -> script to manage training process  
         Notes: Built to pair with a .cfg file to set up training run settings,  
         can be run CLI with this type of file  
+        Working on transition to use tf.Dataset (from generator) to feed training data
   
 * Different model structures (optional)  
     * Requires: Python script  

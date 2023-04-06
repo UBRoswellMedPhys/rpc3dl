@@ -10,6 +10,8 @@ import math
 
 from pydicom.dataset import FileDataset
 
+class ShapeError(BaseException):
+    pass
 
 def getscaledimg(file):
     image = file.pixel_array.astype(np.int16)
