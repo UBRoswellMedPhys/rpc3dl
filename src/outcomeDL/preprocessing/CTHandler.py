@@ -17,6 +17,13 @@ class PatientCT:
         Certain metadata needs to all be the same for this to work, so we'll
         pull those off the first entry in the list, then force the rest to
         match
+        
+        Note that for pixel spacing attribute, the row spacing is the first
+        value (Y axis) and column spacing the second value (X axis), while
+        for ImagePositionPatient the values are (X, Y, Z)
+        Similarly, contour triplets are (X, Y, Z).
+        
+        Array is stored as (Z, Y, X)
         """
         self.studyUID = filelist[0].StudyInstanceUID
         self.FoR = filelist[0].FrameOfReferenceUID
@@ -43,6 +50,8 @@ class PatientCT:
         # create array space for image data
         self.array = np.zeros((len(filelist), self.rows,self.columns))
         zs = [tup[0] for tup in sortedlist]
+        self.position = sortedlist[0][1].ImagePositionPatient
+        self.slice_ref = zs
         if len(np.unique(np.diff(zs))) != 1:
             self.even_spacing = False
         else:
@@ -79,6 +88,30 @@ class PatientCT:
         self.columns = new_cols
         self.rows = new_rows
         self.pixel_size = new_pix_size
+        
+    def locate(self, coord):
+        """
+        Function which accepts real-space coordinate and returns the
+        indices of the appropriate voxel
+        """
+        x = coord[0]
+        y = coord[1]
+        z = coord[2]
+        if any((
+                z < np.amin(self.slice_ref),
+                z > np.amax(self.slice_ref),
+                x < self.position[0],
+                x > (self.position[0] + self.columns * self.pixel_size[1]),
+                y < self.position[1],
+                y > (self.position[1] + self.columns * self.pixel_size[0])
+                )):
+            # coordinates outside of array
+            return None
+            
+        z_idx = round(np.argmin(np.abs(np.array(self.slice_ref) - z)))
+        y_idx = round((y - self.position[1]) / self.pixel_size[0])
+        x_idx = round((x - self.position[0]) / self.pixel_size[1])
+        return (z_idx, y_idx, x_idx)        
         
 
 def prepare_image_array(image_files,pixel_size=1):
