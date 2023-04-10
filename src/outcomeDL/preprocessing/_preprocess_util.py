@@ -128,9 +128,15 @@ def merge_doses(*args):
                                  "to beam dose files, file is {}".format(e))
         if not shape:
             shape = dose.pixel_array.shape
+            ipp = dose.ImagePositionPatient
+            iop = dose.ImageOrientationPatient
         else:
-            if dose.pixel_array.shape != shape:
-                raise ValueError("Mismatched shapes - cannot merge dose files")
+            if not all((
+                    dose.pixel_array.shape == shape,
+                    dose.ImagePositionPatient == ipp,
+                    dose.ImageOrientationPatient == iop
+                    )):
+                raise ValueError("Mismatched arrays - cannot merge dose files")
         if mergedarray is None:
             mergedarray = dose.pixel_array * dose.DoseGridScaling
         else:
@@ -248,3 +254,10 @@ def same_frame_of_reference(files):
         sameframe = False
     return sameframe
     
+def attr_shared(dcms,attr):
+    # assert that all files in a list share same value for attr
+    for i in range(1,len(dcms)):
+        result = (getattr(dcms[0],attr) == getattr(dcms[i],attr))
+        if result is False:
+            break
+    return result
