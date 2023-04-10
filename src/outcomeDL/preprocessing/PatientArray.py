@@ -180,6 +180,16 @@ class PatientMask(PatientArray):
         roi - str
             Name of the ROI to create a mask of
         """
+        self.studyUID = ssfile.StudyInstanceUID
+        self.FoR = reference.FoR
+        if self.studyUID != reference.studyUID:
+            print("Warning: Reference file and ss file StudyUID mismatch")
+        self.pixel_size = reference.pixel_size
+        self.rows = reference.rows
+        self.columns = reference.rows
+        self.position = reference.position
+        self.slice_ref = reference.slice_ref
+        
         self.array = np.zeros_like(reference.array)
         for roi_info in ssfile.StructureSetROISequence:
             if roi_info.ROIName == roi:
