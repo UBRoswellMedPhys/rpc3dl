@@ -10,7 +10,16 @@ import numpy as np
 
 import _preprocess_util as util
 
-class PatientArray:            
+class PatientArray:
+
+    @property
+    def rows(self):
+        return self.array.shape[1]
+    
+    @property
+    def columns(self):
+        return self.array.shape[2]
+    
     @property
     def height(self):
         return self.rows * self.pixel_size[0]
@@ -35,8 +44,6 @@ class PatientArray:
                 )
             new_array[i,:,:] = rescaled
         self.array = new_array
-        self.columns = new_cols
-        self.rows = new_rows
         self.pixel_size = new_pix_size
         
     def locate(self, coord):
@@ -61,7 +68,82 @@ class PatientArray:
         z_idx = round(np.argmin(np.abs(np.array(self.slice_ref) - z)))
         y_idx = round((y - self.position[1]) / self.pixel_size[0])
         x_idx = round((x - self.position[0]) / self.pixel_size[1])
-        return (z_idx, y_idx, x_idx)        
+        return (z_idx, y_idx, x_idx)
+    
+    def align_with(self, other):
+        """
+        Function which shapes data array to match shape and be aligned with
+        the array of other. Common use here will be to fit a dose array onto
+        an image array. Mask arrays won't need this as much since they are
+        imprinted off of an array, so you can just imprint off it once your
+        array is set.
+        """
+        assert (self.even_spacing and other.even_spacing), \
+            "Cannot align arrays with uneven spacing/missing slices"
+        if other.pixel_size != self.pixel_size:
+            self.rescale(other.pixel_size)
+        # assign slice thickness attributes if not present
+        # due to previous assertion, we can use np.unique(np.diff(obj))[0]
+        if not hasattr(self, "slice_thickness"):
+            self.slice_thickness = np.unique(np.diff(self.slice_ref))[0]
+        if not hasattr(other, "slice_thickness"):
+            other.slice_thickness = np.unique(np.diff(other.slice_ref))[0]
+        # find corner differences in voxel-steps
+        # create voxel size list that maps to position axes (X, Y, Z)
+        voxel_size = [float(self.pixel_size[1]),
+                      float(self.pixel_size[0]),
+                      float(self.slice_thickness)]
+        front_pad = []
+        for p_s, p_o, size in zip(self.position, other.position,voxel_size):
+            voxel_steps = round((p_s - p_o) / size)
+            front_pad.append(voxel_steps)
+        
+        # reminder that array shape is in reverse order: (Z, Y, X)
+        # if front_pad value is positive, it means self's array needs to be
+        # expanded
+        back_pad = []
+        back_pad.append(other.columns - (self.columns + front_pad[0])) #X
+        back_pad.append(other.rows - (self.rows + front_pad[1])) #Y
+        back_pad.append(len(other.array) - (len(self.array) + front_pad[2])) #Z
+        
+        # now we trim if any pads are negative. front pad first
+        pad_value = -1000 if isinstance(self,PatientCT) else 0
+        if front_pad[0] < 0:
+            self.array = self.array[:,:,-front_pad[0]:]
+            self.position[0] -= (front_pad[0] * self.pixel_size[1])
+            front_pad[0] = 0 # set to zero as adjustment is complete
+        if front_pad[1] < 0:
+            self.array = self.array[:,-front_pad[1]:,:]
+            self.position[1] -= (front_pad[1] * self.pixel_size[0])
+            front_pad[1] = 0 # set to zero as adjustment is complete
+        if front_pad[2] < 0:
+            self.array = self.array[-front_pad[2]:,:,:]
+            self.slice_ref = self.slice_ref[-front_pad[2]:]
+            self.position[2] -= (front_pad[2] * self.slice_thickness)
+            front_pad[2] = 0 # set to zero as adjustment is complete
+        if back_pad[0] < 0:
+            self.array = self.array[:,:,:back_pad[0]]
+            back_pad[0] = 0
+        if back_pad[1] < 0:
+            self.array = self.array[:,:back_pad[1],:]
+            back_pad[1] = 0
+        if back_pad[2] < 0:
+            self.array = self.array[:back_pad[2],:,:]
+            self.slice_ref = self.slice_ref[:back_pad[2]]
+            back_pad[2] = 0
+        padarg = [(front,back) for front,back in zip(front_pad,back_pad)]
+        padarg.reverse() # recall that shape is backwards order, (Z,Y,X)
+        self.array = np.pad(
+            self.array,
+            pad_width=padarg,
+            constant_values=pad_value
+            )
+
+        position_adjust = np.array(front_pad) * np.array(voxel_size)
+        self.position = list(np.array(self.position) - position_adjust)
+        
+        
+        
         
 class PatientCT(PatientArray):
     def __init__(self, filelist):
@@ -82,8 +164,8 @@ class PatientCT(PatientArray):
         self.FoR = filelist[0].FrameOfReferenceUID
         self.pixel_size = filelist[0].PixelSpacing
         self.slice_thickness = filelist[0].SliceThickness
-        self.rows = filelist[0].Rows
-        self.columns = filelist[0].Columns
+        refrows = filelist[0].Rows
+        refcols = filelist[0].Columns
         zlist = []
         for file in filelist:
             if not all((
@@ -91,8 +173,8 @@ class PatientCT(PatientArray):
                     file.FrameOfReferenceUID == self.FoR,
                     file.PixelSpacing == self.pixel_size,
                     file.SliceThickness == self.slice_thickness,
-                    file.Rows == self.rows,
-                    file.Columns == self.columns
+                    file.Rows == refrows,
+                    file.Columns == refcols
                     )):
                 raise ValueError(
                     "Incompatible metadata in file list"
@@ -101,7 +183,7 @@ class PatientCT(PatientArray):
             
         sortedlist = sorted(zlist,key=lambda x: x[0])
         # create array space for image data
-        self.array = np.zeros((len(filelist), self.rows,self.columns))
+        self.array = np.zeros((len(filelist), refcols, refrows))
         zs = [tup[0] for tup in sortedlist]
         self.position = sortedlist[0][1].ImagePositionPatient
         self.slice_ref = zs
@@ -161,11 +243,13 @@ class PatientDose(PatientArray):
         self.studyUID = ref_file.StudyInstanceUID
         self.FoR = ref_file.FrameOfReferenceUID
         self.pixel_size = ref_file.PixelSpacing
-        self.rows = ref_file.Rows
-        self.columns = ref_file.Columns
         self.position = ref_file.ImagePositionPatient
         offset = np.array(ref_file.GridFrameOffsetVector)
         self.slice_ref = offset + self.position[-1]
+        if len(np.unique(np.diff(offset))) == 1:
+            self.even_spacing = True
+        else:
+            self.even_spacing = False
         
 class PatientMask(PatientArray):
     def __init__(self,reference,ssfile,roi):
@@ -185,10 +269,9 @@ class PatientMask(PatientArray):
         if self.studyUID != reference.studyUID:
             print("Warning: Reference file and ss file StudyUID mismatch")
         self.pixel_size = reference.pixel_size
-        self.rows = reference.rows
-        self.columns = reference.rows
         self.position = reference.position
         self.slice_ref = reference.slice_ref
+        self.even_spacing = reference.even_spacing
         
         self.array = np.zeros_like(reference.array)
         for roi_info in ssfile.StructureSetROISequence:
@@ -225,3 +308,15 @@ class PatientMask(PatientArray):
         assert self.array.shape == other.array.shape
         self.array = self.array + other.array
         self.array[self.array > 0] = 1
+        
+if __name__ == "__main__":
+    import os
+    import pydicom
+    testdir = r"D:\H_N\017_055"
+    filepaths = [os.path.join(testdir,file) for file in os.listdir(testdir) if file.startswith("CT")]
+    files = [pydicom.dcmread(file) for file in filepaths]
+    dosefile = pydicom.dcmread(r"D:\H_N\017_055\RD.017_055.56-70.dcm")
+    
+    test = PatientCT(files)
+    dose = PatientDose(dosefile)
+    test.align_with(dose)
