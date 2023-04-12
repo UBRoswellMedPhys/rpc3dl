@@ -142,6 +142,28 @@ class PatientArray:
         position_adjust = np.array(front_pad) * np.array(voxel_size)
         self.position = list(np.array(self.position) - position_adjust)
         
+    def bounding_box(self, shape, center=None):
+        # if center is none, bounding box centered around center of array
+        if center is None:
+            center = [
+                self.array.shape[0] // 2,
+                self.array.shape[1] // 2,
+                self.array.shape[2] // 2
+                ]
+        else:
+            center = [round(pos) for pos in center]
+        start = [
+            center[0] - (shape[0] // 2),
+            center[1] - (shape[1] // 2),
+            center[2] - (shape[2] // 2)
+            ]
+        
+        boxed = self.array[
+            start[0]:start[0]+shape[0],
+            start[1]:start[1]+shape[1],
+            start[2]:start[2]+shape[2]
+            ]
+        return boxed
         
         
         
@@ -309,6 +331,12 @@ class PatientMask(PatientArray):
         self.array = self.array + other.array
         self.array[self.array > 0] = 1
         
+    @property
+    def com(self):
+        livecoords = np.argwhere(self.array)
+        com = np.sum(livecoords,axis=0) / len(livecoords)
+        return com
+        
 if __name__ == "__main__":
     import os
     import pydicom
@@ -316,7 +344,13 @@ if __name__ == "__main__":
     filepaths = [os.path.join(testdir,file) for file in os.listdir(testdir) if file.startswith("CT")]
     files = [pydicom.dcmread(file) for file in filepaths]
     dosefile = pydicom.dcmread(r"D:\H_N\017_055\RD.017_055.56-70.dcm")
+    ssfile = pydicom.dcmread(r"D:\H_N\017_055\RS.017_055.CT_1.dcm")
     
     test = PatientCT(files)
+    test.rescale(2)
     dose = PatientDose(dosefile)
-    test.align_with(dose)
+    mask_l = PatientMask(test,ssfile,"Parotid (Left)")
+    mask_r = PatientMask(test,ssfile,"Parotid (Right)")
+    mask_l.join(mask_r)
+    masks = mask_l
+    dose.align_with(test)

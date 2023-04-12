@@ -71,7 +71,7 @@ def get_contour(ss,ROI):
             else:
                 return None
         
-def find_parotid_num(ss,side):
+def find_parotid_info(ss,side):
     for roi in ss.StructureSetROISequence:
         name = roi.ROIName.lower()
         if 'parotid' in name:
@@ -79,7 +79,7 @@ def find_parotid_num(ss,side):
             if any(('stem' in elem for elem in strippedname)):
                 continue
             if any((side in elem for elem in strippedname)):
-                return roi.ROINumber
+                return roi.ROIName, roi.ROINumber
     return None
 
 
