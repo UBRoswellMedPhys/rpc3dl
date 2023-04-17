@@ -787,18 +787,19 @@ def pad_image(source,endshape,padvalue=0.0):
 
 
 if __name__ == '__main__':
-    for i in [1,2,3,4]:
-        debugfolder = r"D:\arrays_to_review\{}".format(i)
-        #debugfolder = r"D:\extracteddata\018_002"
-        img = np.load(os.path.join(debugfolder,'CT.npy'))
-        dose = np.load(os.path.join(debugfolder,'dose.npy'))
-        with open(os.path.join(debugfolder,'ct_metadata.json')) as f:
-            im_info = json.load(f)
-            f.close()
-        with open(os.path.join(debugfolder,'dose_metadata.json')) as f:
-            dose_info = json.load(f)
-            f.close()
-        x = dose_expand(img, dose, im_info, dose_info)
-        print(i)
-        print(x.shape)
+    # for i in [1,2,3,4]:
+    #     debugfolder = r"D:\arrays_to_review\{}".format(i)
+    #     #debugfolder = r"D:\extracteddata\018_002"
+    #     img = np.load(os.path.join(debugfolder,'CT.npy'))
+    #     dose = np.load(os.path.join(debugfolder,'dose.npy'))
+    #     with open(os.path.join(debugfolder,'ct_metadata.json')) as f:
+    #         im_info = json.load(f)
+    #         f.close()
+    #     with open(os.path.join(debugfolder,'dose_metadata.json')) as f:
+    #         dose_info = json.load(f)
+    #         f.close()
+    #     x = dose_expand(img, dose, im_info, dose_info)
+    #     print(i)
+    #     print(x.shape)
+    pass
         

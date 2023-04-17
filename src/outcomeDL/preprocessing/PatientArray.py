@@ -8,9 +8,22 @@ Created on Wed Apr  5 01:02:13 2023
 import cv2
 import numpy as np
 
+import scipy.ndimage.interpolation as scipy_mods
+
 import _preprocess_util as util
 
 class PatientArray:
+    """
+    Base class to support array operations for CT, mask, dose patient arrays.
+    Allows definition of common operations for all three. No __init__ method is
+    defined for the base class as each modality has unique requirements on
+    __init__ - this means that the base class cannot be meaningfully used on
+    its own. Only the child classes should be used in practice.
+    """
+    
+    @property
+    def position(self):
+        return self._position
 
     @property
     def rows(self):
@@ -140,7 +153,7 @@ class PatientArray:
             )
 
         position_adjust = np.array(front_pad) * np.array(voxel_size)
-        self.position = list(np.array(self.position) - position_adjust)
+        self._position = list(np.array(self.position) - position_adjust)
         
     def bounding_box(self, shape, center=None):
         # if center is none, bounding box centered around center of array
@@ -164,7 +177,109 @@ class PatientArray:
             start[2]:start[2]+shape[2]
             ]
         return boxed
+    
+    def rotate(self, degree_range=15, seed=None, degrees=None):
+        """
+        Function to rotate 3D array about the Z axis
         
+        Parameters
+        ----
+        degree_range : int
+            Max degrees +/- of rotation. Ignored if degrees is specified.
+        seed : int
+            Randomizer seed, used for reproducibility when transforming
+            multiple related arrays. If None, seed will not be reset.
+        degrees : int
+            Used if you want to manually define the rotation.
+        """
+        if seed is not None:
+            np.random.seed(seed)
+        intensity = np.random.random()
+        if degrees is None:
+            degrees = intensity*degree_range*2 - degree_range
+        self.array = scipy_mods.rotate(
+            self.array,
+            angle=degrees,
+            axes=(1,2),
+            reshape=False,
+            mode='constant',
+            cval=self.voidval
+            )
+    
+    def shift(self, max_shift=0.2, seed=None, pixelshift=None):
+        """
+        Function which shifts array along two dimensions (does not shift in
+        Z axis)
+
+        Parameters
+        ----------
+        max_shift : float, optional
+            Value between 0.0 and 1.0 to represent the amount of the original
+            array that can max shift - so a value of 1.0 would allow the array
+            to be shifted completely off (not recommended). The default is 0.2.
+        seed : int, optional
+            Sets np.random seed to generate shift amounts. If None, then seed
+            is not specified. The default is None.
+        pixelshift : tuple, optional
+            Exact pixel numbers to shift by. This should correspond to the
+            [Y, X] axes. This overrides the random value generator.
+            The default is None.
+        """
+        max_y_pix = max_shift * self.rows
+        max_x_pix = max_shift * self.columns
+        
+        if seed is not None:
+            np.random.seed(seed)
+        y_intensity = np.random.random()
+        x_intensity = np.random.random()
+        
+        if pixelshift is None:
+            yshift = round(y_intensity*max_y_pix*2 - max_y_pix)
+            xshift = round(x_intensity*max_x_pix*2 - max_x_pix)
+            shiftspec = (0, yshift, xshift)
+        else:
+            shiftspec = (0, pixelshift[0], pixelshift[1])
+            
+        self.array = scipy_mods.shift(
+            self.array,
+            shift=shiftspec,
+            mode='constant',
+            cval=self.voidval
+            )
+        
+    def zoom(self, max_zoom_factor=0.2, seed=None, zoom_factor=None):
+        if seed is not None:
+            np.random.seed(seed)
+        intensity = np.random.random()
+        
+        if zoom_factor is None:
+            zoom_factor = intensity*max_zoom_factor*2 - max_zoom_factor
+        
+        original_shape = self.array.shape
+        
+        self.array = scipy_mods.zoom(
+            self.array,
+            zoom=[zoom_factor,zoom_factor,zoom_factor],
+            mode='constant',
+            cval=self.voidval
+            )
+        
+        if zoom_factor > 1.0:
+            self.array = self.bounding_box(original_shape)
+        if zoom_factor < 1.0:
+            diffs = np.array(original_shape) - np.array(self.array.shape)
+            diffs = np.round(diffs / 2).astype(int)
+            pad_spec = [
+                (diffs[0],diffs[0]),
+                (diffs[1],diffs[1]),
+                (diffs[2],diffs[2])
+                ]
+            self.array = np.pad(
+                self.array,
+                pad_width=pad_spec,
+                mode='constant',
+                constant_values=self.voidval
+                )
         
         
 class PatientCT(PatientArray):
@@ -182,6 +297,7 @@ class PatientCT(PatientArray):
         
         Array is stored as (Z, Y, X)
         """
+        self.voidval = -1000
         self.studyUID = filelist[0].StudyInstanceUID
         self.FoR = filelist[0].FrameOfReferenceUID
         self.pixel_size = filelist[0].PixelSpacing
@@ -207,7 +323,7 @@ class PatientCT(PatientArray):
         # create array space for image data
         self.array = np.zeros((len(filelist), refcols, refrows))
         zs = [tup[0] for tup in sortedlist]
-        self.position = sortedlist[0][1].ImagePositionPatient
+        self._position = sortedlist[0][1].ImagePositionPatient
         self.slice_ref = zs
         if len(np.unique(np.diff(zs))) != 1:
             self.even_spacing = False
@@ -216,6 +332,18 @@ class PatientCT(PatientArray):
         # fill in array
         for i, (z, file) in enumerate(sortedlist):
             self.array[i,:,:] = util.getscaledimg(file)
+        
+    def window_level(self, window, level, normalize=False):
+        upper = level + round(window/2)
+        lower = level - round(window/2)
+        
+        self.array[self.array > upper] = upper
+        self.array[self.array < lower] = lower
+        
+        if normalize:
+            # min-max standardization, puts all values between 0.0 and 1.0
+            self.array -= lower
+            self.array = self.array / window
 
 class PatientDose(PatientArray):
     def __init__(self, dcm):
@@ -262,10 +390,12 @@ class PatientDose(PatientArray):
             # and ImageOrientationPatient. This ensures array overlay.
             ref_file = dcm[0] # used to pull attributes
         
+        self.voidval = 0
+        self.dose_units = ref_file.DoseUnits
         self.studyUID = ref_file.StudyInstanceUID
         self.FoR = ref_file.FrameOfReferenceUID
         self.pixel_size = ref_file.PixelSpacing
-        self.position = ref_file.ImagePositionPatient
+        self._position = ref_file.ImagePositionPatient
         offset = np.array(ref_file.GridFrameOffsetVector)
         self.slice_ref = offset + self.position[-1]
         if len(np.unique(np.diff(offset))) == 1:
@@ -286,12 +416,14 @@ class PatientMask(PatientArray):
         roi - str
             Name of the ROI to create a mask of
         """
+        
+        self.voidval = 0
         self.studyUID = ssfile.StudyInstanceUID
         self.FoR = reference.FoR
         if self.studyUID != reference.studyUID:
             print("Warning: Reference file and ss file StudyUID mismatch")
         self.pixel_size = reference.pixel_size
-        self.position = reference.position
+        self._position = reference.position
         self.slice_ref = reference.slice_ref
         self.even_spacing = reference.even_spacing
         
@@ -325,6 +457,22 @@ class PatientMask(PatientArray):
                 color=1
                 )
             
+    @property
+    def array(self):
+        return self._array
+    
+    @array.setter
+    def array(self, value):
+        """
+        SciPy spline interpolation functions that are used for data
+        augmentation tasks do not preserve the [0, 1] value set for the array,
+        instead converting into weird floats. This enforces that any update to
+        the array value remain a [0, 1] pseudo-boolean array.
+        """
+        self._array = value
+        self._array = np.clip(self._array,0,1)
+        self._array = np.abs(np.round(self._array))
+            
     def join(self, other):
         assert isinstance(other, PatientMask)
         assert self.array.shape == other.array.shape
@@ -347,7 +495,7 @@ if __name__ == "__main__":
     ssfile = pydicom.dcmread(r"D:\H_N\017_055\RS.017_055.CT_1.dcm")
     
     test = PatientCT(files)
-    test.rescale(2)
+    test.rescale(2.5)
     dose = PatientDose(dosefile)
     mask_l = PatientMask(test,ssfile,"Parotid (Left)")
     mask_r = PatientMask(test,ssfile,"Parotid (Right)")
