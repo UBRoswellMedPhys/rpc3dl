@@ -5,6 +5,8 @@ Created on Wed Apr  5 01:02:13 2023
 @author: johna
 """
 
+import copy
+
 import cv2
 import numpy as np
 
@@ -20,6 +22,11 @@ class PatientArray:
     __init__ - this means that the base class cannot be meaningfully used on
     its own. Only the child classes should be used in practice.
     """
+    
+    def __init__(self, ref_file):
+        self.studyUID = ref_file.StudyInstanceUID
+        self.FoR = ref_file.FrameOfReferenceUID
+        self.pixel_size = ref_file.PixelSpacing
     
     @property
     def position(self):
@@ -154,6 +161,8 @@ class PatientArray:
 
         position_adjust = np.array(front_pad) * np.array(voxel_size)
         self._position = list(np.array(self.position) - position_adjust)
+        if hasattr(self, "slice_ref") and hasattr(other,"slice_ref"):
+            self.slice_ref = other.slice_ref
         
     def bounding_box(self, shape, center=None):
         # if center is none, bounding box centered around center of array
@@ -192,6 +201,9 @@ class PatientArray:
         degrees : int
             Used if you want to manually define the rotation.
         """
+        if not hasattr(self,"original"):
+            self.original = copy.deepcopy(self.array)
+        
         if seed is not None:
             np.random.seed(seed)
         intensity = np.random.random()
@@ -225,6 +237,9 @@ class PatientArray:
             [Y, X] axes. This overrides the random value generator.
             The default is None.
         """
+        if not hasattr(self,"original"):
+            self.original = copy.deepcopy(self.array)
+        
         max_y_pix = max_shift * self.rows
         max_x_pix = max_shift * self.columns
         
@@ -248,12 +263,15 @@ class PatientArray:
             )
         
     def zoom(self, max_zoom_factor=0.2, seed=None, zoom_factor=None):
+        if not hasattr(self,"original"):
+            self.original = copy.deepcopy(self.array)
+        
         if seed is not None:
             np.random.seed(seed)
         intensity = np.random.random()
         
         if zoom_factor is None:
-            zoom_factor = intensity*max_zoom_factor*2 - max_zoom_factor
+            zoom_factor = 1 + intensity*max_zoom_factor*2 - max_zoom_factor
         
         original_shape = self.array.shape
         
@@ -280,6 +298,10 @@ class PatientArray:
                 mode='constant',
                 constant_values=self.voidval
                 )
+            
+    def reset_augments(self):
+        self.array = copy.deepcopy(self.original)
+        del self.original
         
         
 class PatientCT(PatientArray):
@@ -298,9 +320,10 @@ class PatientCT(PatientArray):
         Array is stored as (Z, Y, X)
         """
         self.voidval = -1000
-        self.studyUID = filelist[0].StudyInstanceUID
-        self.FoR = filelist[0].FrameOfReferenceUID
-        self.pixel_size = filelist[0].PixelSpacing
+        #self.studyUID = filelist[0].StudyInstanceUID
+        #self.FoR = filelist[0].FrameOfReferenceUID
+        #self.pixel_size = filelist[0].PixelSpacing
+        super().__init__(filelist[0])
         self.slice_thickness = filelist[0].SliceThickness
         refrows = filelist[0].Rows
         refcols = filelist[0].Columns
@@ -392,9 +415,7 @@ class PatientDose(PatientArray):
         
         self.voidval = 0
         self.dose_units = ref_file.DoseUnits
-        self.studyUID = ref_file.StudyInstanceUID
-        self.FoR = ref_file.FrameOfReferenceUID
-        self.pixel_size = ref_file.PixelSpacing
+        super().__init__(ref_file)
         self._position = ref_file.ImagePositionPatient
         offset = np.array(ref_file.GridFrameOffsetVector)
         self.slice_ref = offset + self.position[-1]
@@ -417,6 +438,8 @@ class PatientMask(PatientArray):
             Name of the ROI to create a mask of
         """
         
+        # we don't use super().__init__() for PatientMask due to the unique
+        # structure of ss files
         self.voidval = 0
         self.studyUID = ssfile.StudyInstanceUID
         self.FoR = reference.FoR
@@ -472,6 +495,7 @@ class PatientMask(PatientArray):
         self._array = value
         self._array = np.clip(self._array,0,1)
         self._array = np.abs(np.round(self._array))
+        self._array = self.array.astype(np.int16)
             
     def join(self, other):
         assert isinstance(other, PatientMask)
