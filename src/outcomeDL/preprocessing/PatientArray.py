@@ -165,6 +165,11 @@ class PatientArray:
             self.slice_ref = other.slice_ref
         
     def bounding_box(self, shape, center=None):
+        
+        # allow for 2D bounding box - implied that every slice is desired
+        if len(shape) == 2:
+            shape = [self.shape[0]] + list(shape)
+            
         # if center is none, bounding box centered around center of array
         if center is None:
             center = [
