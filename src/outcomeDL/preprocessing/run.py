@@ -146,12 +146,20 @@ if __name__ == "__main__":
     prepper = prep.Preprocessor()
     prepper.attach([ct_arr, dose_arr, mask_arr])
     
-    # TODO - Prepare code for augmentation, figure out how to interface 
-    # augmentation with CLI and argparse
-    
     prepper.save(
         args.destination,
         boxed=boxed,
         boxshape=boxsize,
         maskcentered=args.center_of_mass
         )
+    
+    if args.augments > 0:
+        for i in range(args.augments):
+            prepper.random_augment()
+            prepper.save(
+                args.destination,
+                boxed=boxed,
+                boxshape=boxsize,
+                maskcentered=args.center_of_mass
+                )
+            prepper.reset_augments()
