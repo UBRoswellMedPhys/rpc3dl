@@ -14,6 +14,39 @@ from _preprocess_util import find_parotid_info
 import os
 import pydicom
 
+"""
+Script for CLI processing of DICOM files into HDF5 files which will house the
+input data for neural net training.
+
+Here is a breakdown of the CLI arguments:
+    POSITIONAL
+    1st: path to the directory that stores the DICOM files. The expectation 
+        here is that the files have already been "cleaned" and only files
+        associated with the patient study and relevant for processing exist
+        in the directory.
+    2nd: path to desired output file location. Note that your file should end
+        with the suffix ".h5" since the file is saved as HDF5 format.
+        
+    NAMED
+    -px, --pixel_size: float value to set what size to rescale pixels to.
+            Note that the script does not modify slice thickness, so you don't
+            have total control over voxel size.
+    -pl, --parotid_l: just a boolean flag, tells script to gather mask data
+            for left parotid
+    -pr, --parotid_r: same as -pl but for right parotid. if both are included,
+            the script will create a merged mask of both parotids
+    -bb, --bounding_box: 3D axes presecription for  output array size. Note that
+            arrays are generated as Z,Y,X axis order.
+    -c, --center_of_mass: boolean flag telling the program whether to center the
+            bounding box on the mask center of mass.
+    -a, --augments: integer, number of augments to generate. currently only
+            supports random augments.
+
+
+"""
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Preprocessor: DICOM to HDF5')
     
@@ -46,6 +79,13 @@ if __name__ == "__main__":
         action='store_true', 
         default=False,
         help='Center bounding box on organ mask center-of-mass'
+        )
+    parser.add_argument(
+        '-a',
+        '--augments',
+        type=int,
+        default=0,
+        help='Sets the number of data augments to also generate'
         )
     
     # Parse the arguments

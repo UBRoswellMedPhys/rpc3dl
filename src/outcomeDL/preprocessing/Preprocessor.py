@@ -139,7 +139,7 @@ class Preprocessor:
                     degrees=exact
                     )
     
-    def random_augment(self,num_augs=1,replace=False):
+    def random_augment(self,num_augs=2,replace=False):
         augs = ['zoom','rotate','shift']
         aug_idx = [0,1,2]
         performed = 0

@@ -9,6 +9,7 @@ Script to generate labels from QOL survey file and patient info file.
 
 import os
 import pandas as pd
+import argparse
 
 import _classes as helper
 
