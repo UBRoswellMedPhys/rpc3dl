@@ -81,8 +81,28 @@ class Survey:
                  time_col = 'eortc_qlqc30_35_timestamp',
                  id_col = 'MRN'):
         self.data = df.reset_index(drop=True)
-        self.id_col = id_col
-        self.time_col = time_col
+        
+        if isinstance(id_col,list):
+            self.id_col = self._check_list_input(id_col)
+        else:
+            self.id_col = id_col
+        
+        if isinstance(time_col, list):
+            self.time_col = self._check_list_input(time_col)
+        else:
+            self.time_col = time_col
+            
+    def _check_list_input(self,valuelist):
+        found = False
+        keep = None
+        for val in valuelist:
+            if val in self.data.columns:
+                if found is False:
+                    keep = val
+                    found = True
+                elif found is True:
+                    raise ValueError(f"Multiple matches found in {valuelist}")
+        return keep
             
     def calculate_time(self,ptinfo):
         
@@ -165,14 +185,35 @@ class PatientInfo:
                  time_col = 'RT Completion Date'):
         df = df.rename(columns={col:col.strip() for col in df.columns})
         self.data = df.reset_index(drop=True)
-        self.id_col = id_col
-        self.time_col = time_col
+        if isinstance(id_col,list):
+            self.id_col = self._check_list_input(id_col)
+        else:
+            self.id_col = id_col
+        
+        if isinstance(time_col, list):
+            self.time_col = self._check_list_input(time_col)
+        else:
+            self.time_col = time_col
         
         # unsure about stuff below this for now
         includesRT = self.data['Treatment Type'].astype(str).apply(
             lambda x: "rt" in x.lower()
             )
         self.data = self.data[includesRT]
+        self.encoded = False
+        
+    def _check_list_input(self,valuelist):
+        found = False
+        keep = None
+        for val in valuelist:
+            if val in self.data.columns:
+                if found is False:
+                    keep = val
+                    found = True
+                elif found is True:
+                    raise ValueError(f"Multiple matches found in {valuelist}")
+        return keep
+        
     
     def scrub_data(self):
         """
@@ -233,6 +274,29 @@ class PatientInfo:
             self.scrubbed_data[field] = resolve_grouped_field(
                 self.data, field
                 )
+            
+    def ohe(self):
+        from sklearn.preprocessing import OneHotEncoder
+        self._encoder = OneHotEncoder()
+        self.original_columns = self.scrubbed_data.columns
+        newdata = self._encoder.fit_transform(self.scrubbed_data.to_numpy())
+        self.scrubbed_data = pd.DataFrame(
+            index=self.data.index,
+            columns=range(newdata.shape[1]),
+            data=newdata
+            )
+        self.encoded = True
+    
+    def reverse_ohe(self):
+        orig_data = self._encoder.inverse_transform(
+            self.scrubbed_data.to_numpy()
+            )
+        self.scrubbed_data = pd.DataFrame(
+            index=self.data.index,
+            columns=self.original_columns,
+            data=orig_data
+            )
+        self.encoded = False
             
     def to_csv(self,path):
         if not hasattr(self,"scrubbed_data"):

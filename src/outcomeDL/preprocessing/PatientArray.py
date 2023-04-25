@@ -27,6 +27,7 @@ class PatientArray:
         self.studyUID = ref_file.StudyInstanceUID
         self.FoR = ref_file.FrameOfReferenceUID
         self.pixel_size = ref_file.PixelSpacing
+        self.patient_id = ref_file.PatientID
     
     @property
     def position(self):

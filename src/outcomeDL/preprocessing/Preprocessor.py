@@ -76,6 +76,17 @@ class Preprocessor:
             elif isinstance(x, arrayclass.PatientMask):
                 x.array = x.array.astype(np.int16)
                 self.mask = x
+            if self.patient_id is None:
+                self.patient_id = x.patient_id
+            else:
+                assert self.patient_id == x.patient_id, "Patient ID mismatch"
+                
+    def get_label(self,labeldf):
+        value = labeldf.loc[self.patient_id,'label']
+        self.label = int(value)
+        
+    def get_pt_chars(self,pc_file):
+        self.pt_chars = pc_file.loc[self.patient_id].to_numpy()
             
     def erase(self,mode):
         if mode.lower() == "ct":
@@ -94,12 +105,14 @@ class Preprocessor:
                 )
             
     def enforce_compat(self):
+        # note that this presumes all three are present, true for my research
         conditions = (
             (self.ct.pixel_size == self.dose.pixel_size == self.mask.pixel_size),
             (self.ct.slice_ref == self.dose.slice_ref == self.mask.slice_ref),
-            (self.ct.array.shape == self.dose.array.shape == self.mask.array.shape)
+            (self.ct.array.shape == self.dose.array.shape == self.mask.array.shape),
+            (self.ct.patient_id == self.dose.patient_id == self.mask.patient_id)
             )
-        testnames = ['Pixel Size', 'Slice Reference List','Array Shape']
+        testnames = ['Pixel Size', 'Slice Reference List','Array Shape', 'Patient ID']
         for cond, desc in zip(conditions,testnames):
             if not cond:
                 raise ValueError(
@@ -175,16 +188,24 @@ class Preprocessor:
         
         with h5py.File(fname,"a") as file:
             if not self.augmented:
-                file['base'] = final_array
+                file.create_dataset('base',data=final_array)
             else:
                 ds_keys = get_dataset_keys(file)
-                ds_keys.remove('base')
+                if 'base' in ds_keys:
+                    ds_keys.remove('base')
                 if len(ds_keys) == 0:
                     new_ver = 1
                 else:
                     versions = [int(key.split("_")[-1]) for key in ds_keys]
                     new_ver = np.amax(versions) + 1
-                file['augment_{}'.format(new_ver)] = data
+                file.create_dataset(
+                    'augment_{}'.format(new_ver), data=final_array
+                    )
+            if hasattr(self, 'label'):
+                file.attrs['label'] = self.label
+            if hasattr(self,'pt_chars'):
+                file.create_dataset('pt_chars', data=self.pt_chars)
+            
                 
                 
 def get_dataset_keys(f):

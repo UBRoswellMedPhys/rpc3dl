@@ -12,6 +12,7 @@ import PatientArray as arrayclass
 from _preprocess_util import find_parotid_info
 
 import os
+import pandas as pd
 import pydicom
 
 """
@@ -41,13 +42,15 @@ Here is a breakdown of the CLI arguments:
             bounding box on the mask center of mass.
     -a, --augments: integer, number of augments to generate. currently only
             supports random augments.
+    -l, --label: path to label file
+    -ch, --pt_chars: path to one-hot-encoded patient characteristics file
 
 
 """
 
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Preprocessor: DICOM to HDF5')
     
     # Add the arguments
@@ -86,6 +89,16 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help='Sets the number of data augments to also generate'
+        )
+    parser.add_argument(
+        '-l','--label',type=str,default=None,help="Path to label file."
+        )
+    parser.add_argument(
+        '-ch',
+        '--pt_chars',
+        type=str,
+        default=None,
+        help="Path to OHE patient characteristic file."
         )
     
     # Parse the arguments
@@ -146,6 +159,14 @@ if __name__ == "__main__":
     prepper = prep.Preprocessor()
     prepper.attach([ct_arr, dose_arr, mask_arr])
     
+    if args.label is not None:
+        labeldf = pd.read_csv(args.label,index_col=0)
+        prepper.get_label(labeldf)
+        
+    if args.pt_chars is not None:
+        pc_file = pd.read_csv(args.pt_chars,index_col=0)
+        prepper.get_pt_chars(pc_file)
+    
     prepper.save(
         args.destination,
         boxed=boxed,
@@ -163,3 +184,6 @@ if __name__ == "__main__":
                 maskcentered=args.center_of_mass
                 )
             prepper.reset_augments()
+            
+if __name__ == "__main__":
+    main()
