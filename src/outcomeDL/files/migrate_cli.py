@@ -18,30 +18,65 @@ from contextlib import redirect_stdout
 
 from dicom_filter import Filter
 
-parser = argparse.ArgumentParser(
-    description='Copy files from source directory to destination directory'
-    )
+def main():
 
-parser.add_argument('src_dir', metavar='source_directory', type=str, help='path to the source directory')
-parser.add_argument('dst_dir', metavar='destination_directory', type=str, help='path to the destination directory')
-parser.add_argument('--modalities', metavar='modalities', type=str, nargs='+', help='Additional modalities to retain')
-
-args = parser.parse_args()
-
-print('Source directory:', args.src_dir)
-print('Destination directory:', args.dst_dir)
-
-keep_modality = ["CT","RTPLAN","RTDOSE","RTSTRUCT"]
-
-if args.modalities:
-    keep_modality += args.modalities
-
-print("Modalities to transfer:",keep_modality)
-
-with open("log.txt","w") as f:
-    with redirect_stdout(f):
-        sender = Filter(keep_modality)
-        sender.set_endpoints(args.src_dir,args.dst_dir)
-        sender.send_files()
-        sender.find_planning_study(location=args.dst_dir,cleanup=True)
-    f.close()
+    parser = argparse.ArgumentParser(
+        description='Copy files from source directory to destination directory'
+        )
+    
+    parser.add_argument(
+        'src_dir', 
+        metavar='source_directory', 
+        type=str, 
+        help='path to the source directory'
+        )
+    parser.add_argument(
+        'dst_dir', 
+        metavar='destination_directory', 
+        type=str, 
+        help='path to the destination directory'
+        )
+    parser.add_argument(
+        '--modalities', 
+        metavar='modalities', 
+        type=str, 
+        nargs='+', 
+        help='Additional modalities to retain, comma separated'
+        )
+    parser.add_argument(
+        '-o',
+        '--output',
+        type=str,
+        default=None,
+        help="Redirect output to this file (creates file if none exists)"
+        )
+    
+    args = parser.parse_args()
+    
+    print('Source directory:', args.src_dir)
+    print('Destination directory:', args.dst_dir)
+    
+    keep_modality = ["CT","RTPLAN","RTDOSE","RTSTRUCT"]
+    
+    if args.modalities:
+        new_modalities = [x.strip() for x in args.modalities.split(",")]
+        keep_modality += new_modalities
+    
+    print("Modalities to transfer:",keep_modality)
+    
+    if args.output is not None:
+        with open(args.output,"w") as f:
+            with redirect_stdout(f):
+                standard_migrate()
+            f.close()
+    else:
+        standard_migrate()
+        
+def standard_migrate(source, dest, modalities):
+    sender = Filter(modalities)
+    sender.set_endpoints(source,dest)
+    sender.send_files()
+    sender.find_planning_study(location=dest,cleanup=True)
+    
+if __name__ == '__main__':
+    main()

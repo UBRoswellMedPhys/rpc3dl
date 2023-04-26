@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import argparse
 
-import _classes as helper
+import nondicom_classes as helper
 
 
 def main():
@@ -146,6 +146,7 @@ def main():
         # Also prepare the patient characteristics and save those
         db.scrub_data()
         db.to_csv(os.path.join(DEST_DIR,"pt_char_scrubbed.csv"))
+        
         
 if __name__ == "__main__":
     main()

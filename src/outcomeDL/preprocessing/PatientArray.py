@@ -152,8 +152,15 @@ class PatientArray:
             self.array = self.array[:back_pad[2],:,:]
             self.slice_ref = self.slice_ref[:back_pad[2]]
             back_pad[2] = 0
+            
+        # at this point, any sides of the array that needed to be trimmed down
+        # have been, and their "pad" value set from a negative number to zero
+        
         padarg = [(front,back) for front,back in zip(front_pad,back_pad)]
         padarg.reverse() # recall that shape is backwards order, (Z,Y,X)
+        
+        # note that if all sides were trimmed, pad_widths will all be (0,0)
+        # this is fine, it will just return the same array
         self.array = np.pad(
             self.array,
             pad_width=padarg,
