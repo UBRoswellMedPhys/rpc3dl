@@ -1,4 +1,4 @@
-# outcomeDL
+# rpc3dl
 Deep learning for radiotherapy outcome prediction
 
 Primary author: John Asbach

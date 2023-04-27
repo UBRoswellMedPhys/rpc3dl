@@ -9,7 +9,7 @@ import random
 import numpy as np
 import h5py
 
-import PatientArray as arrayclass
+import rpc3dl.preprocessing.arrayclasses as arrayclass
 
 class Preprocessor:
     
@@ -17,6 +17,7 @@ class Preprocessor:
         self._ct = None
         self._dose = None
         self._mask = None
+        self.patient_id = None
         
     @property
     def ct(self):

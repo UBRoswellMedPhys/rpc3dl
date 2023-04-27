@@ -1,0 +1,7 @@
+pandas==1.2.4
+numpy
+tensorflow
+pydicom
+h5py
+scipy
+opencv-python

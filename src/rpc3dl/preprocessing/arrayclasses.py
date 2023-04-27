@@ -12,7 +12,7 @@ import numpy as np
 
 import scipy.ndimage.interpolation as scipy_mods
 
-import _preprocess_util as util
+import rpc3dl.preprocessing._preprocess_util as util
 
 class PatientArray:
     """
@@ -152,8 +152,15 @@ class PatientArray:
             self.array = self.array[:back_pad[2],:,:]
             self.slice_ref = self.slice_ref[:back_pad[2]]
             back_pad[2] = 0
+            
+        # at this point, any sides of the array that needed to be trimmed down
+        # have been, and their "pad" value set from a negative number to zero
+        
         padarg = [(front,back) for front,back in zip(front_pad,back_pad)]
         padarg.reverse() # recall that shape is backwards order, (Z,Y,X)
+        
+        # note that if all sides were trimmed, pad_widths will all be (0,0)
+        # this is fine, it will just return the same array
         self.array = np.pad(
             self.array,
             pad_width=padarg,
@@ -448,6 +455,7 @@ class PatientMask(PatientArray):
         # structure of ss files
         self.voidval = 0
         self.studyUID = ssfile.StudyInstanceUID
+        self.patient_id = ssfile.PatientID
         self.FoR = reference.FoR
         if self.studyUID != reference.studyUID:
             print("Warning: Reference file and ss file StudyUID mismatch")
@@ -516,19 +524,4 @@ class PatientMask(PatientArray):
         return com
         
 if __name__ == "__main__":
-    import os
-    import pydicom
-    testdir = r"D:\H_N\017_055"
-    filepaths = [os.path.join(testdir,file) for file in os.listdir(testdir) if file.startswith("CT")]
-    files = [pydicom.dcmread(file) for file in filepaths]
-    dosefile = pydicom.dcmread(r"D:\H_N\017_055\RD.017_055.56-70.dcm")
-    ssfile = pydicom.dcmread(r"D:\H_N\017_055\RS.017_055.CT_1.dcm")
-    
-    test = PatientCT(files)
-    test.rescale(2.5)
-    dose = PatientDose(dosefile)
-    mask_l = PatientMask(test,ssfile,"Parotid (Left)")
-    mask_r = PatientMask(test,ssfile,"Parotid (Right)")
-    mask_l.join(mask_r)
-    masks = mask_l
-    dose.align_with(test)
+    pass

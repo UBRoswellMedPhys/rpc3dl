@@ -11,7 +11,11 @@ import os
 import pandas as pd
 import argparse
 
-import _classes as helper
+from rpc3dl.preprocessing.nondicomclasses import (
+    Condition,
+    Survey,
+    PatientInfo
+    )
 
 
 def main():
@@ -86,7 +90,7 @@ def main():
     # =====================
     full_condition = None
     for i, cond in enumerate(CONDITIONS):
-        x = helper.Condition(*cond.split(" "))
+        x = Condition(*cond.split(" "))
         if full_condition is None:
             full_condition = x
         else:
@@ -96,14 +100,14 @@ def main():
     # Retrieve CSV files
     # =====================
     qol = pd.read_csv(QOL_PATH)
-    qol = helper.Survey(
+    qol = Survey(
         qol,
         time_col = TIME_COLS,
         id_col = ID_COLS
         )
     
     db = pd.read_csv(PT_CHARS_PATH)
-    db = helper.PatientInfo(
+    db = PatientInfo(
         db,
         id_col = ID_COLS,
         time_col = TIME_COLS
@@ -146,6 +150,7 @@ def main():
         # Also prepare the patient characteristics and save those
         db.scrub_data()
         db.to_csv(os.path.join(DEST_DIR,"pt_char_scrubbed.csv"))
+        
         
 if __name__ == "__main__":
     main()
