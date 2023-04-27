@@ -12,8 +12,8 @@ import pandas as pd
 import string
 import random
 
-import lookups # will need to change this to a relative import eventually
-import dummy
+from rpc3dl.anon import lookups
+from rpc3dl.anon import dummy
 
 from pydicom.tag import Tag
 from pydicom.dataset import Dataset
@@ -206,6 +206,34 @@ def main(args):
     print("Welcome to the DICOM bulk anonymization tool.")
     print("This tool conforms with the Basic Application " +
           "Level Confidentiality Profile")
+    
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog="DICOMAnon",
+        description="Program to anonymize DICOM files for DL research."
+        )
+    parser.add_argument(
+        "-p","--path",
+        dest="path",
+        required=True,
+        help="Path to file or directory containing DICOM files to anonymize."
+        )
+    parser.add_argument(
+        '-d','--dest',
+        dest="dest",
+        required=True,
+        help="Path to destination folder to store anonymized files."
+        )
+    parser.add_argument(
+        "-m","--map",dest="save_map",action="store_true",
+        help="Save mapping to CSV"
+        )
+    parser.add_argument(
+        "-r","--recursive", dest="recursive", action="store_true", 
+        default=False, help="Recursive processing of target directory."
+        )
+    args = parser.parse_args()
+    
     # TODO - break this up into subfunctions as necessary, too bulky right now
     destroot = cleanpath(args.dest)
     # if destination directory does not exist, create it
@@ -281,31 +309,4 @@ def main(args):
         raise Exception("Invalid target path provided.")  
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        prog="DICOMAnon",
-        description="Program to anonymize DICOM files for DL research."
-        )
-    parser.add_argument(
-        "-p","--path",
-        dest="path",
-        required=True,
-        help="Path to file or directory containing DICOM files to anonymize."
-        )
-    parser.add_argument(
-        '-d','--dest',
-        dest="dest",
-        required=True,
-        help="Path to destination folder to store anonymized files."
-        )
-    parser.add_argument(
-        "-m","--map",dest="save_map",action="store_true",
-        help="Save mapping to CSV"
-        )
-    parser.add_argument(
-        "-r","--recursive", dest="recursive", action="store_true", 
-        default=False, help="Recursive processing of target directory."
-        )
-    args = parser.parse_args()
-    
-    main(args)
+    main()

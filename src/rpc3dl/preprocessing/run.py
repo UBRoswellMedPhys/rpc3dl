@@ -7,9 +7,9 @@ Created on Tue Apr 18 00:27:37 2023
 
 import argparse
 
-import Preprocessor as prep
-import PatientArray as arrayclass
-from _preprocess_util import find_parotid_info
+from rpc3dl.preprocessing.handler import Preprocessor
+import rpc3dl.preprocessing.arrayclasses as arrayclass
+from rpc3dl.preprocessing._preprocess_util import find_parotid_info
 
 import os
 import pandas as pd
@@ -156,7 +156,7 @@ def main():
         else:
             mask_arr.join(temp)
             
-    prepper = prep.Preprocessor()
+    prepper = Preprocessor()
     prepper.attach([ct_arr, dose_arr, mask_arr])
     
     if args.label is not None:

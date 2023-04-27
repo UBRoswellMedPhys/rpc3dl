@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: rpc3dl
+Version: 0.1.0
+Summary: Set of scripts and functions to allow deep learning outcome research on DICOM files
+Home-page: https://github.com/UBRoswellMedPhys/outcomeDL
+Author: John Asbach
+Author-email: john.asbach@gmail.com
+Project-URL: Bug Tracker, https://github.com/UBRoswellMedPhys/outcomeDL/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Custom
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+
+# rpc3dl
+Deep learning for radiotherapy outcome prediction
+
+Primary author: John Asbach
+Author contact: johnasba@buffalo.edu
+
+Purpose:
+This package is designed to support end-to-end research on radiotherapy outcomes. v1.0 will support research into normal tissue toxicity outcomes using planning CT, structure set, and dose files.  
+  
+For breakdown of current work/task list, see the README file within src/outcomeDL

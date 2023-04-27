@@ -16,7 +16,7 @@ import argparse
 
 from contextlib import redirect_stdout
 
-from dicom_filter import Filter
+from rpc3dl.files.dicom_filter import Filter
 
 def main():
 

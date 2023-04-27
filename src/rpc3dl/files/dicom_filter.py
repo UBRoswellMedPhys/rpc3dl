@@ -12,7 +12,7 @@ import os
 import shutil
 import pydicom
 
-import _dicom_util as dcmutil
+import rpc3dl.files._dicom_util as dcmutil
 
 from contextlib import redirect_stdout
 
