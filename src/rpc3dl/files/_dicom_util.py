@@ -288,6 +288,7 @@ def get_planning_study(filepaths):
 
 def find_complete_study(dcmlist):
     # fallback function for if strict planning study filter fails
+    dcmlist = [pydicom.dcmread(file) for file in dcmlist]
     study_dict = hierarchy(dcmlist, level='study')
     studies = list(study_dict.keys())
     good = []
