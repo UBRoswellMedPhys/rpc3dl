@@ -302,9 +302,40 @@ def find_complete_study(dcmlist):
         for k,v in goodstudy.items():
             for file in v:
                 files.append(file)
-        return files
     else:
         return None
+
+    # now we filter by FoR
+    framerefdict = {}
+    for file in files:
+        frameref = get_attr_deep(file,"FrameOfReferenceUID")
+        if frameref not in framerefdict.keys():
+            framerefdict[frameref] = [file]
+        else:
+            framerefdict[frameref].append(file)
+    for fr,framereffiles in framerefdict.items():
+        modsort = hierarchy(framereffiles,level='modality')
+        if all([mod in modsort.keys() 
+                for mod in ['CT','RTDOSE','RTSTRUCT','RTPLAN']]):
+            # complete FoR, let's do a quick parotid check
+            returnfiles = []
+            for mod,modfiles in modsort.items():
+                if mod != "RTSTRUCT":
+                    returnfiles += modfiles
+                elif mod == "RTSTRUCT":
+                    found_good_one = False
+                    for x in modfiles:
+                        if parotid_check(x):
+                            returnfiles.append(x)
+                            found_good_one = True
+                            break
+                    if not found_good_one:
+                        returnfiles += modfiles
+            return returnfiles
+    # if conditions aren't met just return them all
+    return files
+        
+    
         
 
 def main_filter(source_folder,
