@@ -83,9 +83,12 @@ class Filter:
         planningstudy = dcmutil.get_planning_study(allfiles)
         if planningstudy is None:
             print(
-                "Could not locate planning study in {}".format(patientfolder)
+                "Strict planning study search failed, trying loose search"
                 )
-            return None
+            planningstudy = dcmutil.find_complete_study(allfiles)
+            if planningstudy is None:
+                print("Loose search failed")
+                return None
         if probe is True:
             # early exit, for if you want to examine the state of data without
             # affecting the files at all

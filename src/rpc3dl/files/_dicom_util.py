@@ -285,6 +285,20 @@ def get_planning_study(filepaths):
             dcmfiles.append(ea)
     print(status)
     return dcmfiles
+
+def find_complete_study(dcmlist):
+    # fallback function for if strict planning study filter fails
+    study_dict = hierarchy(dcmlist, level='study')
+    studies = list(study_dict.keys())
+    good = []
+    for study in studies:
+        if all([m in study_dict[study].keys()
+                for m in ['CT','RTPLAN','RTDOSE','RTSTRUCT']]):
+            good.append(study)
+    if len(good) == 1:
+        return good[0]
+    else:
+        return None
         
 
 def main_filter(source_folder,
