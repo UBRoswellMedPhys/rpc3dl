@@ -297,7 +297,12 @@ def find_complete_study(dcmlist):
                 for m in ['CT','RTPLAN','RTDOSE','RTSTRUCT']]):
             good.append(study)
     if len(good) == 1:
-        return good[0]
+        goodstudy = study_dict[good[0]]
+        files = []
+        for k,v in goodstudy.items():
+            for file in v:
+                files.append(file)
+        return files
     else:
         return None
         
