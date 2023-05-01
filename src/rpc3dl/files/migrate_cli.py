@@ -41,6 +41,7 @@ def main():
         metavar='modalities', 
         type=str, 
         nargs='+', 
+        default=[],
         help='Additional modalities to retain, comma separated'
         )
     parser.add_argument(
@@ -58,9 +59,7 @@ def main():
     
     keep_modality = ["CT","RTPLAN","RTDOSE","RTSTRUCT"]
     
-    if args.modalities:
-        new_modalities = [x.strip() for x in args.modalities.split(",")]
-        keep_modality += new_modalities
+    keep_modality += args.modalities
     
     print("Modalities to transfer:",keep_modality)
     
