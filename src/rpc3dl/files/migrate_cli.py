@@ -66,10 +66,10 @@ def main():
     if args.output is not None:
         with open(args.output,"w") as f:
             with redirect_stdout(f):
-                standard_migrate()
+                standard_migrate(args.src_dir, args.dst_dir, keep_modality)
             f.close()
     else:
-        standard_migrate()
+        standard_migrate(args.src_dir, args.dst_dir, keep_modality)
         
 def standard_migrate(source, dest, modalities):
     sender = Filter(modalities)
