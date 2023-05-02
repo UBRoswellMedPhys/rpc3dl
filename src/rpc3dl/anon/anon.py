@@ -202,7 +202,7 @@ def cleanpath(path):
             path = path.replace(ptID, anonID_map[ptID])
     return path
 
-def main(args):
+def main():
     print("Welcome to the DICOM bulk anonymization tool.")
     print("This tool conforms with the Basic Application " +
           "Level Confidentiality Profile")
