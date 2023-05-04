@@ -336,43 +336,41 @@ def find_complete_study(dcmlist):
     return files
         
     
-        
-
-def main_filter(source_folder,
-                destination_folder,
-                modalitykeep=['CT','RTSTRUCT','RTDOSE']):
-    """ Assumes source_folder contains DICOM files of a single patientID,
-    checks studies, saves valid studies to subfolders in destination folder.
-    """
-    files = os.listdir(source_folder)
-    success = False
-    dcms = []
-    goodstudy = []
-    # loop to load all DICOM files
-    for file in files:
-        try:
-            dcm = pydicom.dcmread(os.path.join(source_folder,file))
-        except InvalidDicomError:
-            continue # skip anything that's not dicom
-        dcms.append(dcm)
-    hier = hierarchy(dcms,level='study') # organize files in hierarchy
-    print("Number of studies: {}".format(len(list(hier.keys()))))
-    for i, (study, studydict) in enumerate(hier.items()):
-        if validate_study(studydict):
-            goodstudy.append(study)
-            success = True
-            os.mkdir(os.path.join(destination_folder,str(study)))
+def filter_dcms(dcms):
+    # check to ensure only one study
+    check = hierarchy(dcms,level='study')
+    assert len(list(check.keys())) == 1
+    
+    modsort = hierarchy(dcms,level='modality')
+    # first we get our plan file - if only one, we accept
+    # if more than one, look for approved status
+    if len(modsort['RTPLAN']) == 1:
+        plan = modsort['RTPLAN'][0]
+    else:
+        plan = None
+        for planfile in modsort['RTPLAN']:
+            if planfile.ApprovalStatus == 'APPROVED':
+                plan = planfile
+                break
+        assert plan is not None
+    
+    refUID = plan.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+    ss = None
+    for ssfile in modsort['RTSTRUCT']:
+        if ssfile.SOPInstanceUID == refUID:
+            ss = ssfile
+            break
+    imgrefUID = ss.ReferencedFrameOfReferenceSequence[0].RTReferencedStudySequence[0].RTReferencedSeriesSequence[0].SeriesInstanceUID
+    keep_cts = []
+    for ct in modsort['CT']:
+        if ct.SeriesInstanceUID == imgrefUID:
+            keep_cts.append(ct)
+    # provision for the sometimes failure to transfer dose files from MIM
+    if 'RTDOSE' not in modsort.keys():
+        dosefiles = []
+    else:
+        dosefiles = modsort['RTDOSE']
+    
+    allfiles = [plan] + [ss] + keep_cts + dosefiles
+    return allfiles
             
-    # studies all evaluated at this point, now we move files over
-    #
-    for file in files:
-        try:
-            dcm = pydicom.dcmread(os.path.join(source_folder,file))
-        except InvalidDicomError:
-            continue # skip anything that's not dicom
-        if dcm.StudyInstanceUID in goodstudy and dcm.Modality in modalitykeep:
-            destfullpath = os.path.join(destination_folder,
-                                        str(dcm.StudyInstanceUID),
-                                        file)
-            pydicom.write_file(destfullpath,dcm)
-    return success

@@ -116,7 +116,6 @@ def main():
     dcms = [
         pydicom.dcmread(os.path.join(root, file))
         for file in os.listdir(root)
-        if file.endswith(".dcm")
         ]
     ct_files = []
     dose_files = []
