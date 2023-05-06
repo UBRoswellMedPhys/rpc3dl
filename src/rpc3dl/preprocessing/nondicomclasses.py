@@ -14,7 +14,7 @@ class Condition:
         self.value = value
     
     def evaluate(self, row):
-        row_value = row[self.category]
+        row_value = int(row[self.category])
         if self.operator == "==":
             return row_value == self.value
         elif self.operator == ">":
