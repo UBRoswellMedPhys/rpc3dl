@@ -318,6 +318,7 @@ def resolve_grouped_field(df,fieldname):
     fieldex = f"\s*{fieldname}\s*\(choice=(.*)\)\s*"
     subcols = [col for col in df.columns if re.fullmatch(fieldex,col)]
     subdf = df[subcols]
+    subdf.fillna("Unchecked",inplace=True)
     for col in subdf.columns:
         cat_name = re.sub(fieldex,r"\1",col)
         subdf[col] = subdf[col].apply(
