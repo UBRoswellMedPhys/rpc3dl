@@ -80,14 +80,6 @@ def assign_anon_id(dcm,anonid):
 
 def anonymize_element(dataset, element, profile, iod):
     global UID_map
-    if any(('instance uid' in element.description().lower(),
-            element.tag == Tag(('0020','0052')))):
-        olduid = element.value
-        if olduid in UID_map:
-            element.value = UID_map[olduid]
-        else:
-            UID_map[olduid] = dummy.dummy_UID()
-            element.value = UID_map[olduid]
             
     if element.tag in profile.keys():
         procedure = profile[element.tag]
@@ -110,16 +102,19 @@ def anonymize_element(dataset, element, profile, iod):
             procedure = procedure[-1]
         
         
-        if procedure == 'X':
+        if procedure == 'U':
+            olduid = element.value
+            if olduid in UID_map:
+                element.value = UID_map[olduid]
+            else:
+                UID_map[olduid] = dummy.dummy_UID()
+                element.value = UID_map[olduid]
+        elif procedure == 'X':
             del dataset[element.tag]
         elif procedure == 'Z':
             element.value = ''
         elif procedure == 'D':
             element.value = dummy_VR[element.VR]()
-        elif procedure == 'U':
-            # UID handler is performed above - all instance UIDs are being 
-            # masked to dummy UIDs, regardless of presence in Basic Profile
-            pass
         else:
             print(
                 "Failed to find acceptable procedure code ({})".format(procedure)
@@ -309,4 +304,5 @@ def main():
         raise Exception("Invalid target path provided.")  
 
 if __name__ == "__main__":
-    main()
+    pass
+    #main()

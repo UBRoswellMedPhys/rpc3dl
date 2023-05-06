@@ -16,6 +16,17 @@ import rpc3dl.files._dicom_util as dcmutil
 
 from contextlib import redirect_stdout
 
+"""
+Dose files reference plan files:
+    dosefile.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
+Plan files reference structure set files:
+    plan.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+Structure Set files reference CT series:
+    ssfile.ReferencedFrameOfReferenceSequence[0].RTReferencedStudySequence[0].RTReferencedSeriesSequence[0].SeriesInstanceUID
+    (note that this value maps to SERIES instance UID, not an SOPInstanceUID)
+
+"""
+
 class Filter:
     def __init__(self,
                  keep=['CT','RTPLAN','RTDOSE','RTSTRUCT']):

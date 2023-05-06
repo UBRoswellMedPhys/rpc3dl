@@ -138,8 +138,7 @@ class Survey:
                  timeframe,
                  cutoff=90,
                  mode='majority'):
-        subset = getattr(self,timeframe)
-        pt_subset = subset[subset[self.id_col]==patient]
+        pt_subset = self.data[self.data[self.id_col]==patient]
         
         # evaluae time windowing and cutoff
         if timeframe == 'acute':
