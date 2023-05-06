@@ -118,6 +118,7 @@ def main():
     # =====================
     # Calculate labels for each time bracket
     # =====================
+    qol.calculate_time(db)
     
     wrapper_dict = {}
     for time in ['acute','early','late','all']:
