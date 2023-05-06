@@ -119,7 +119,9 @@ class Survey:
                 # no match in provided ptinfo DB
                 continue
             first_RT_done = pt_entries[ptinfo.time_col].min()
-            days_since = (row[self.time_col] - first_RT_done).days
+            days_since = (
+                pd.to_datetime(row[self.time_col]) - pd.to_datetime(first_RT_done)
+                ).days
             self.data.loc[i,'days_since_RT'] = days_since
         # drop all rows that never got time data assigned
         prev_len = len(self.data)
