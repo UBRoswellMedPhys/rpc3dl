@@ -106,9 +106,15 @@ class Survey:
             
     def calculate_time(self,ptinfo):
         
+        # clean up dataframes
         self.data[self.time_col] = self.data[self.time_col].apply(
             lambda x: None if str(x).startswith("#") else x
             )
+        self.data.drop(
+            self.data[self.data[self.time_col] == '[not completed]'].index, 
+            inplace=True
+            )
+
         self.data = self.data.dropna(subset=[self.time_col])
         self.data.insert(1,'days_since_RT',None)
         # iterate through rows
@@ -201,6 +207,7 @@ class PatientInfo:
             lambda x: "rt" in x.lower()
             )
         self.data = self.data[includesRT]
+        self.data = self.data[~self.data[self.time_col].isna()]
         self.encoded = False
         
     def _check_list_input(self,valuelist):
