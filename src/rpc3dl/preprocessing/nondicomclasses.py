@@ -11,7 +11,7 @@ class Condition:
     def __init__(self, category, operator, value):
         self.category = category
         self.operator = operator
-        self.value = value
+        self.value = int(value)
     
     def evaluate(self, row):
         row_value = int(row[self.category])
@@ -246,6 +246,10 @@ class PatientInfo:
             [Date of Last Follow Up] (tough with anonymization, but maybe useful to confirm QOL survey timings?)
 
         """
+        self.data.drop(
+            self.data[self.data['Age at Diagnosis'].isna()].index,
+            inplace=True
+            )
         self.scrubbed_data = pd.DataFrame(index=self.data.index)
         self.scrubbed_data[self.id_col] = self.data[self.id_col]
         self.scrubbed_data['Gender'] = self.data['Gender']

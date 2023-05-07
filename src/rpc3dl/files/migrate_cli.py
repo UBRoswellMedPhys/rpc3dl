@@ -37,6 +37,12 @@ def main():
         help='path to the destination directory'
         )
     parser.add_argument(
+        '--support_dir',
+        type=str,
+        default=None,
+        help="Alternate directory to source plan/dose/ss files from"
+        )
+    parser.add_argument(
         '--modalities', 
         metavar='modalities', 
         type=str, 
@@ -61,21 +67,36 @@ def main():
     
     keep_modality += args.modalities
     
+    if args.support_dir is not None:
+        print('Support directory:',args.support_dir)
+    
     print("Modalities to transfer:",keep_modality)
     
     if args.output is not None:
         with open(args.output,"w") as f:
             with redirect_stdout(f):
-                standard_migrate(args.src_dir, args.dst_dir, keep_modality)
+                standard_migrate(
+                    args.src_dir, 
+                    args.dst_dir, 
+                    keep_modality,
+                    support_dir=args.support_dir
+                    )
             f.close()
     else:
-        standard_migrate(args.src_dir, args.dst_dir, keep_modality)
+        standard_migrate(
+            args.src_dir, 
+            args.dst_dir, 
+            keep_modality,
+            support_dir=args.support_dir
+            )
         
-def standard_migrate(source, dest, modalities):
+def standard_migrate(source, dest, modalities,support_dir=None):
     sender = Filter(modalities)
-    sender.set_endpoints(source,dest)
+    sender.set_endpoints(source,dest,support=support_dir)
     sender.send_files()
-    sender.find_planning_study(location=dest,cleanup=True)
+    if support_dir is not None:
+        sender.fetch_supportfiles()
+    sender.filter_files(location=dest,cleanup=True)
     
 if __name__ == '__main__':
     main()

@@ -58,7 +58,8 @@ def main():
         'input_directory', type=str, help='Directory to load files from'
         )
     parser.add_argument(
-        'destination', type=str, help="Filepath to save output to")
+        'destination', type=str, help="Filepath to save output to"
+        )
     parser.add_argument(
         '-px',
         '--pixel_size', 
@@ -100,6 +101,13 @@ def main():
         default=None,
         help="Path to OHE patient characteristic file."
         )
+    parser.add_argument(
+        '-rm',
+        '--remove_files',
+        type=bool,
+        action='store_true',
+        help="Indicates that we'd like to remove the source files after processing them"
+        )
     
     # Parse the arguments
     args = parser.parse_args()
@@ -117,6 +125,7 @@ def main():
         pydicom.dcmread(os.path.join(root, file))
         for file in os.listdir(root)
         ]
+
     ct_files = []
     dose_files = []
     ss_files = []

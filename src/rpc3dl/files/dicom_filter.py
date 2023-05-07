@@ -31,10 +31,17 @@ class Filter:
     def __init__(self,
                  keep=['CT','RTPLAN','RTDOSE','RTSTRUCT']):
         self.keep_modality = keep
+        self.support_modalities = []
+        self.patientID = []
         
-    def set_endpoints(self,source,dest):
+    def set_endpoints(self,source,dest,support=None):
         self.source = source
         self.dest = dest
+        self.support = support
+        if support is not None:
+            for mod in ['RTPLAN','RTDOSE','RTSTRUCT']:
+                self.keep_modality.remove(mod)
+                self.support_modalities.append(mod)
         
     def send_files(self,modality_filter=True):
         """
@@ -53,11 +60,28 @@ class Filter:
             os.mkdir(self.dest)
         
         for path in filepaths:
+            file = pydicom.dcmread(path)
+            if file.PatientID not in self.patientID:
+                self.patientID.append(file.PatientID)
             if modality_filter:
-                file = pydicom.dcmread(path)
                 if file.Modality not in self.keep_modality:
                     continue
             shutil.move(path,path.replace(self.source,self.dest))
+            
+    def fetch_supportfiles(self):
+        for root, dirs, files in os.walk(self.support):
+            for d in dirs:
+                for f in os.listdir(os.path.join(root,d)):
+                    filepath = os.path.join(root,d,f)
+                    try:
+                        temp = pydicom.dcmread(filepath)
+                    except:
+                        continue
+                    if temp.PatientID in self.patientID:
+                        shutil.move(
+                            filepath,
+                            os.path.join(self.dest,os.path.basename(filepath))
+                            )
             
     def sort_studies(self,patientfolder=None):
         # meant to be called after send_files
@@ -78,10 +102,10 @@ class Filter:
                 os.mkdir(studydir)
             shutil.move(path,os.path.join(studydir,file))
             
-    def find_planning_study(self,
-                            location=None,
-                            cleanup=True,
-                            probe=False):
+    def filter_files(self,
+                     location=None,
+                     cleanup=True,
+                     probe=False):
         if location is None:
             patientfolder = self.dest
         else:
@@ -91,32 +115,35 @@ class Filter:
         for file in os.listdir(patientfolder):
             path = os.path.join(patientfolder,file)
             allfiles.append(path)
-        planningstudy = dcmutil.get_planning_study(allfiles)
-        if planningstudy is None:
-            print(
-                "Strict planning study search failed, trying loose search"
-                )
-            planningstudy = dcmutil.find_complete_study(allfiles)
-            if planningstudy is None:
-                print("Loose search failed")
-                return None
+        cts, plan, dose, ss = dcmutil.walk_references(allfiles)
+        if any([cts is None, dose is None, ss is None]):
+            raise Exception("Missing critical files")
         if probe is True:
             # early exit, for if you want to examine the state of data without
             # affecting the files at all
             return True
         
-        destination = os.path.join(patientfolder,"data")
-        os.mkdir(destination)
+        alldcms = cts # this will always be a list
+        for f in [plan, dose, ss]:
+            if f is not None:
+                alldcms.append(f)
+        
+        os.mkdir(os.path.join(location,"temp"))
+        for file in allfiles:
+            shutil.move(
+                file,
+                file.replace(location,os.path.join(location,"temp"))
+                )
+        
         naming = {"CT":"CT","RTSTRUCT":"RS","RTDOSE":"RD","RTPLAN":"RP"}
-        for i, dcm in enumerate(planningstudy):
+        for i, dcm in enumerate(alldcms):
             if str(dcm.Modality) not in naming.keys():
                 naming[str(dcm.Modality)] = str(dcm.Modality)
             filename = naming[str(dcm.Modality)] + "_{}.dcm".format(i)
-            pydicom.write_file(os.path.join(destination,filename), dcm)
+            pydicom.write_file(os.path.join(location,filename), dcm)
         
         if cleanup is True:
-            for file in allfiles:
-                os.remove(file)
+            shutil.rmtree(os.path.join(location,"temp"))
         
 if __name__ == "__main__":
     test = Filter()

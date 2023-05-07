@@ -207,6 +207,67 @@ def validate_study(study_dict,oar_check_method=parotid_check):
     study_dict['RTSTRUCT'] = keep_ss
     return True
 
+"""
+Dose files reference plan files:
+    dosefile.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
+Plan files reference structure set files:
+    plan.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+Structure Set files reference CT series:
+    ssfile.ReferencedFrameOfReferenceSequence[0].RTReferencedStudySequence[0].RTReferencedSeriesSequence[0].SeriesInstanceUID
+    (note that this value maps to SERIES instance UID, not an SOPInstanceUID)
+
+"""
+def pair_dose_to_plan(dosefile,planfilelist):
+    ref = dosefile.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
+    for plan in planfilelist:
+        if plan.SOPInstanceUID == ref:
+            return plan
+        
+def pair_plan_to_ss(planfile, ssfilelist):
+    ref = planfile.ReferencedStructureSetSequence[0].ReferencedSOPInstanceUID
+    for ss in ssfilelist:
+        if ss.SOPInstanceUID == ref:
+            return ss
+        
+def pair_ss_to_cts(ssfile, ctfiles):
+    keep = []
+    ref = ssfile.ReferencedFrameOfReferenceSequence[0].RTReferencedStudySequence[0].RTReferencedSeriesSequence[0].SeriesInstanceUID
+    for ct in ctfiles:
+        if ct.SeriesInstanceUID == ref:
+            keep.append(ct)
+    return keep
+
+def walk_references(filepaths):
+    # load all files
+    dcms = [pydicom.dcmread(file) for file in filepaths]
+    mod_dict = hierarchy(dcms,level='modality')
+    for mod in ['CT','RTDOSE','RTPLAN','RTSTRUCT']:
+        if mod not in mod_dict.keys():
+            mod_dict[mod] = []
+    
+    # start with dose file, find plan file
+    for dosefile in mod_dict['RTDOSE']:
+        planfile = pair_dose_to_plan(dosefile,mod_dict['RTPLAN'])
+        if planfile is not None:
+            break
+    
+    # with plan file find ss - allow no plan file if only a single ss file
+    if planfile is None:
+        if len(mod_dict['RTSTRUCT']) != 1:
+            raise Exception("No plan file to guide SS mapping, multiple SS files")
+        else:
+            ss = mod_dict['RTSTRUCT'][0]
+    else:
+        ss = pair_plan_to_ss(planfile,mod_dict['RTSTRUCT'])
+        if ss is None:
+            raise Exception("No paired structure set file for the plan file")
+        
+    # with ss file find which ct files we care about
+    cts = pair_ss_to_cts(ss,mod_dict['CT'])
+    
+    return cts, planfile, dosefile, ss
+
+# this function is ineffective and will be retired
 def get_planning_study(filepaths):
     status = ""
     dcms = [pydicom.dcmread(file) for file in filepaths]
