@@ -32,7 +32,7 @@ class Filter:
                  keep=['CT','RTPLAN','RTDOSE','RTSTRUCT']):
         self.keep_modality = keep
         self.support_modalities = []
-        self.patientID = []
+        self.patientID = None
         
     def set_endpoints(self,source,dest,support=None):
         self.source = source
@@ -61,8 +61,10 @@ class Filter:
         
         for path in filepaths:
             file = pydicom.dcmread(path)
-            if file.PatientID not in self.patientID:
-                self.patientID.append(file.PatientID)
+            if file.PatientID != self.patientID:
+                if self.patientID is not None:
+                    print("Patient ID mismatch:",file.PatientID, self.patientID)
+            self.patientID = file.PatientID
             if modality_filter:
                 if file.Modality not in self.keep_modality:
                     continue
@@ -70,18 +72,18 @@ class Filter:
             
     def fetch_supportfiles(self):
         for root, dirs, files in os.walk(self.support):
-            for d in dirs:
-                for f in os.listdir(os.path.join(root,d)):
-                    filepath = os.path.join(root,d,f)
-                    try:
-                        temp = pydicom.dcmread(filepath)
-                    except:
-                        continue
-                    if temp.PatientID in self.patientID:
-                        shutil.move(
-                            filepath,
-                            os.path.join(self.dest,os.path.basename(filepath))
-                            )
+    
+            for f in files:
+                filepath = os.path.join(root,f)
+                try:
+                    temp = pydicom.dcmread(filepath)
+                except:
+                    continue
+                if temp.PatientID in self.patientID:
+                    shutil.move(
+                        filepath,
+                        os.path.join(self.dest,os.path.basename(filepath))
+                        )
             
     def sort_studies(self,patientfolder=None):
         # meant to be called after send_files
