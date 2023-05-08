@@ -251,7 +251,7 @@ def pair_ss_to_cts(ssfile, ctfiles):
 def walk_references(filepaths):
     # load all files
     dcms = [pydicom.dcmread(file) for file in filepaths]
-    mod_dict = hierarchy(dcms,level='modality')
+    mod_dict = organize_list(dcms,'Modality')
     for mod in ['CT','RTDOSE','RTPLAN','RTSTRUCT']:
         if mod not in mod_dict.keys():
             mod_dict[mod] = []

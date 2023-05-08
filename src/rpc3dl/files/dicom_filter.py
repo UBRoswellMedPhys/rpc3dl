@@ -71,19 +71,14 @@ class Filter:
             shutil.move(path,path.replace(self.source,self.dest))
             
     def fetch_supportfiles(self):
-        for root, dirs, files in os.walk(self.support):
-    
-            for f in files:
-                filepath = os.path.join(root,f)
-                try:
-                    temp = pydicom.dcmread(filepath)
-                except:
-                    continue
-                if temp.PatientID == self.patientID:
-                    shutil.move(
-                        filepath,
-                        os.path.join(self.dest,os.path.basename(filepath))
-                        )
+        for file in os.listdir(self.support):
+            filepath = os.path.join(self.support, file)
+            print(filepath)
+            shutil.copyfile(
+                filepath,
+                filepath.replace(self.support,self.dest)
+                )
+            print("Copied to",filepath.replace(self.support,self.dest))
             
     def sort_studies(self,patientfolder=None):
         # meant to be called after send_files
@@ -117,6 +112,7 @@ class Filter:
         for file in os.listdir(patientfolder):
             path = os.path.join(patientfolder,file)
             allfiles.append(path)
+        print("Initial file list:",allfiles)
         cts, plan, dose, ss = dcmutil.walk_references(allfiles)
         if any([cts is None, dose is None, ss is None]):
             raise Exception("Missing critical files")
