@@ -206,8 +206,11 @@ class PatientInfo:
         includesRT = self.data['Treatment Type'].astype(str).apply(
             lambda x: "rt" in x.lower()
             )
+        # critical to only retain First Diagnosis entries, as RedCap entries
+        # do not keep demographic data for subsequent entries
+        self.data = self.data[self.data['Event Name']=="First Diagnosis "]
+        
         self.data = self.data[includesRT]
-        self.data = self.data[~self.data[self.time_col].isna()]
         self.encoded = False
         
     def _check_list_input(self,valuelist):
@@ -246,40 +249,41 @@ class PatientInfo:
             [Date of Last Follow Up] (tough with anonymization, but maybe useful to confirm QOL survey timings?)
 
         """
-        self.data.drop(
-            self.data[self.data['Age at Diagnosis'].isna()].index,
-            inplace=True
-            )
-        self.scrubbed_data = pd.DataFrame(index=self.data.index)
-        self.scrubbed_data[self.id_col] = self.data[self.id_col]
+        from sklearn.preprocessing import OneHotEncoder
+        
+        self.scrubbed_data = pd.DataFrame(index=self.data[self.id_col])     
+        
+        # first take single-column
         self.scrubbed_data['Gender'] = self.data['Gender']
-        self.scrubbed_data['Race'] = resolve_grouped_field(self.data, "Race")
         self.scrubbed_data['Smoking Stats'] = self.data[
             'Current Smoking Status (within 1 month of treatment)'
-            ]
-        # anonymization of age requires 90+ be grouped
-        self.scrubbed_data['Age'] = self.data['Age at Diagnosis'].apply(
-            lambda x: 90 if int(x) > 90 else int(x)
-            )
-        
-        # 'Cancer Type' is not useful - almost all are squamous cell carc
-        
-        # self.scrubbed_data['Cancer Type'] = resolve_grouped_field(
-        #     self.data,"Type"
-        #     )
-        
-        self.scrubbed_data['Disease Site'] = resolve_grouped_field(
-            self.data, "Disease Site"
-            )
+            ]        
         self.scrubbed_data['T Stage'] = self.data['T Stage Clinical']
         self.scrubbed_data['N Stage'] = self.data['N stage']
         self.scrubbed_data['M Stage'] = self.data['M stage']
         self.scrubbed_data['HPV status'] = self.data['HPV status']
         self.scrubbed_data['Treatment Type'] = self.data['Treatment Type']
+        
+        self._encoder = OneHotEncoder(sparse_output=False)
+        tempdata = self._encoder.fit_transform(self.scrubbed_data)
+        self.ohe_data = pd.DataFrame(
+            index=self.scrubbed_data.index,
+            columns=self._encoder.get_feature_names_out(),
+            data=tempdata
+            )
+        
+        # anonymization of age requires 90+ be grouped
+        self.ohe['Age'] = self.data['Age at Diagnosis'].apply(
+            lambda x: 90 if int(x) > 90 else int(x)
+            )
+        
+        for groupfield in ['Race','Disease Site']:
+            temp = binarize_grouped_field(self.data,groupfield)
+            self.ohe = pd.concat([self.ohe,temp],axis=1)
         # =========
         # possibly add other columns in some other space, or as reference, unsure
         
-        self.scrubbed_data.set_index(self.id_col,inplace=True)
+        
         
     def include_column(self,field,grouped=False):
         if grouped == False:
@@ -315,9 +319,23 @@ class PatientInfo:
     def to_csv(self,path):
         if not hasattr(self,"scrubbed_data"):
             raise Exception("You must first perform data scrub")
-        self.scrubbed_data.to_csv(path,index=True)
+        self.ohe.to_csv(path,index=True)
     
-    
+
+
+def binarize_grouped_field(df,fieldname):
+    import re
+    fieldex = f"\s*({fieldname})\s*\(choice=(.*)\)\s*"
+    subcols = [col for col in df.columns if re.fullmatch(fieldex,col)]
+    subdf = df[subcols]
+    subdf.fillna("Unchecked",inplace=True)
+    for col in subdf.columns:
+        subdf[col] = subdf[col].apply(
+            lambda x: 1 if x=='Checked' else 0
+            )
+    colrename = {col:re.sub(fieldex,r"\1_\2",col) for col in subdf.columns}
+    subdf.rename(mapper=colrename, axis=1, inplace=True)
+    return subdf
 
 def resolve_grouped_field(df,fieldname):
     import re
