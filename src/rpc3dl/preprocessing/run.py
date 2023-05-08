@@ -95,6 +95,10 @@ def main():
         '-l','--label',type=str,default=None,help="Path to label file."
         )
     parser.add_argument(
+        '-lc','--label_condition',type=str,default=None,
+        help="Description of label condition to identify how labels were defined"
+        )
+    parser.add_argument(
         '-ch',
         '--pt_chars',
         type=str,
