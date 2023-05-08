@@ -112,6 +112,13 @@ def main():
         action='store_true',
         help="Indicates that we'd like to remove the source files after processing them"
         )
+    parser.add_argument(
+        '-pid',
+        '--patient_id',
+        type=str,
+        default=None,
+        help="Patient ID used to fetch label and pt_chars"
+        )
     
     # Parse the arguments
     args = parser.parse_args()
@@ -168,12 +175,15 @@ def main():
         else:
             mask_arr.join(temp)
             
-    prepper = Preprocessor()
+    prepper = Preprocessor(patient_id=args.patient_id)
     prepper.attach([ct_arr, dose_arr, mask_arr])
     
+    print("PatientID of preprocessor:",prepper.patient_id)
     if args.label is not None:
+        print("Getting label...")
         labeldf = pd.read_csv(args.label,index_col=0)
         prepper.get_label(labeldf)
+        print("Retrieved label:", prepper.label)
         
     if args.pt_chars is not None:
         pc_file = pd.read_csv(args.pt_chars,index_col=0)

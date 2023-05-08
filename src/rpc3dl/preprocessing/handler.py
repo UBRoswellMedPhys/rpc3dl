@@ -13,12 +13,12 @@ import rpc3dl.preprocessing.arrayclasses as arrayclass
 
 class Preprocessor:
     
-    def __init__(self):
+    def __init__(self,patient_id=None):
         self._ct = None
         self._dose = None
         self._mask = None
-        self.patient_id = None
-        self.label = None
+        self.patient_id = patient_id
+        self.label = 99
         self.pt_chars = []
         
     @property
@@ -79,22 +79,18 @@ class Preprocessor:
             elif isinstance(x, arrayclass.PatientMask):
                 x.array = x.array.astype(np.int16)
                 self.mask = x
-            if self.patient_id is None:
-                self.patient_id = x.patient_id
-            else:
-                assert self.patient_id == x.patient_id, "Patient ID mismatch"
                 
     def get_label(self,labeldf):
-        if self.patient_id in labeldf.index:
-            self.label = labeldf.loc[self.patient_id,'label']
-        elif str(self.patient_id) in labeldf.index:
-            self.label = labeldf.loc[str(self.patient_id),'label']
+        if self.patient_id is None:
+            raise Exception("Cannot fetch label without patient ID")
+        labeldf.index = labeldf.index.astype(str)
+        self.label = labeldf.loc[str(self.patient_id),'label']
         
     def get_pt_chars(self,pc_file):
-        if self.patient_id in pc_file.index:
-            self.pt_chars = pc_file.loc[self.patient_id].to_numpy()
-        elif str(self.patient_id) in pc_file.index:
-            self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
+        if self.patient_id is None:
+            raise Exception("Cannot fetch pt_chars without patient ID")
+        pc_file.index = pc_file.index.astype(str)
+        self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
             
     def erase(self,mode):
         if mode.lower() == "ct":
@@ -209,7 +205,7 @@ class Preprocessor:
                 file.create_dataset(
                     'augment_{}'.format(new_ver), data=final_array
                     )
-            file.attrs['label'] = self.label
+            file.attrs['label'] = int(self.label)
             if 'pt_chars' in file.keys():
                 del file['pt_chars']
             file.create_dataset('pt_chars', data=self.pt_chars)

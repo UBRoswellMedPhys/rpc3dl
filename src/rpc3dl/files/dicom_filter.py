@@ -112,7 +112,6 @@ class Filter:
         for file in os.listdir(patientfolder):
             path = os.path.join(patientfolder,file)
             allfiles.append(path)
-        print("Initial file list:",allfiles)
         cts, plan, dose, ss = dcmutil.walk_references(allfiles)
         if any([cts is None, dose is None, ss is None]):
             raise Exception("Missing critical files")
