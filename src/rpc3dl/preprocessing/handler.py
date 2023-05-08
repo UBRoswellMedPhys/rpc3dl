@@ -18,6 +18,8 @@ class Preprocessor:
         self._dose = None
         self._mask = None
         self.patient_id = None
+        self.label = None
+        self.pt_chars = []
         
     @property
     def ct(self):
@@ -87,16 +89,12 @@ class Preprocessor:
             self.label = labeldf.loc[self.patient_id,'label']
         elif str(self.patient_id) in labeldf.index:
             self.label = labeldf.loc[str(self.patient_id),'label']
-        else:
-            self.label = None
         
     def get_pt_chars(self,pc_file):
         if self.patient_id in pc_file.index:
             self.pt_chars = pc_file.loc[self.patient_id].to_numpy()
         elif str(self.patient_id) in pc_file.index:
             self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
-        else:
-            self.pt_chars = None
             
     def erase(self,mode):
         if mode.lower() == "ct":
@@ -211,12 +209,10 @@ class Preprocessor:
                 file.create_dataset(
                     'augment_{}'.format(new_ver), data=final_array
                     )
-            if hasattr(self, 'label'):
-                if self.label is not None:
-                    file.attrs['label'] = self.label
-            if hasattr(self,'pt_chars'):
-                if self.pt_chars is not None:
-                    file.create_dataset('pt_chars', data=self.pt_chars)
+            file.attrs['label'] = self.label
+            if 'pt_chars' in file.keys():
+                del file['pt_chars']
+            file.create_dataset('pt_chars', data=self.pt_chars)
             
                 
                 

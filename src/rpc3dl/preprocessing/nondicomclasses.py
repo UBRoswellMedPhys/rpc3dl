@@ -275,6 +275,7 @@ class PatientInfo:
         self.ohe_data = self.ohe_data.astype(int)
         
         # anonymization of age requires 90+ be grouped
+        self.data['Age at Diagnosis'] = self.data['Age at Diagnosis'].fillna(0)
         self.ohe_data.loc[:,'Age'] = self.data['Age at Diagnosis'].apply(
             lambda x: 90 if int(x) > 90 else int(x)
             )
@@ -289,7 +290,7 @@ class PatientInfo:
     def to_csv(self,path):
         if not hasattr(self,"scrubbed_data"):
             raise Exception("You must first perform data scrub")
-        self.ohe.to_csv(path,index=True)
+        self.ohe_data.to_csv(path,index=True)
     
 
 
@@ -300,7 +301,7 @@ def binarize_grouped_field(df,fieldname):
     subdf = df[subcols]
     subdf.fillna("Unchecked",inplace=True)
     for col in subdf.columns:
-        subdf[col] = subdf[col].apply(
+        subdf.loc[:,col] = subdf[col].apply(
             lambda x: 1 if x=='Checked' else 0
             )
     colrename = {col:re.sub(fieldex,r"\1_\2",col) for col in subdf.columns}

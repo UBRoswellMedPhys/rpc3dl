@@ -12,6 +12,7 @@ import rpc3dl.preprocessing.arrayclasses as arrayclass
 from rpc3dl.preprocessing._preprocess_util import find_parotid_info
 
 import os
+import shutil
 import pandas as pd
 import pydicom
 
@@ -195,6 +196,9 @@ def main():
                 maskcentered=args.center_of_mass
                 )
             prepper.reset_augments()
+    
+    if args.remove_files:
+        shutil.rmtree(args.input_directory)
             
 if __name__ == "__main__":
     main()
