@@ -255,6 +255,7 @@ def walk_references(filepaths):
     for mod in ['CT','RTDOSE','RTPLAN','RTSTRUCT']:
         if mod not in mod_dict.keys():
             mod_dict[mod] = []
+        print(mod,len(mod_dict[mod]))
     
     # start with dose file, find plan file
     for dosefile in mod_dict['RTDOSE']:
@@ -460,3 +461,33 @@ def filter_dcms(dcms):
     allfiles = [plan] + [ss] + keep_cts + dosefiles
     return allfiles
             
+def organize_folder(folder, dest):
+    if not os.path.exists(dest):
+        os.mkdir(dest)
+    for root, dirs, files in os.walk(folder):
+        for f in files:
+            filepath = os.path.join(root,f)
+            assert os.path.exists(filepath)
+            try:
+                dcm = pydicom.dcmread(filepath)
+            except:
+                continue
+            patient_id = str(dcm.PatientID)
+            
+            naming = {"CT":"CT","RTSTRUCT":"RS","RTDOSE":"RD","RTPLAN":"RP"}
+            if str(dcm.Modality) in naming.keys():
+                prefix = naming[str(dcm.Modality)]
+            else:
+                prefix = ""
+            suffix = ".dcm"
+            newfname = ""
+            if not f.startswith(prefix):
+                newfname += prefix
+            newfname += f
+            if not f.endswith(suffix):
+                newfname += suffix
+            
+            sendto = os.path.join(dest,patient_id)
+            if not os.path.exists(sendto):
+                os.mkdir(sendto)
+            dcm.save_as(os.path.join(sendto, newfname))

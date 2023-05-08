@@ -79,7 +79,7 @@ class Filter:
                     temp = pydicom.dcmread(filepath)
                 except:
                     continue
-                if temp.PatientID in self.patientID:
+                if temp.PatientID == self.patientID:
                     shutil.move(
                         filepath,
                         os.path.join(self.dest,os.path.basename(filepath))
@@ -153,6 +153,8 @@ class Filter:
         
         if cleanup is True:
             shutil.rmtree(os.path.join(location,"temp"))
+            
+
         
 if __name__ == "__main__":
     test = Filter()
