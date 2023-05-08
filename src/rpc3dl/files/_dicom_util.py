@@ -22,6 +22,17 @@ there may be use in the future in allowing customization of parameters to set
 what the requirements of file acceptance are.
 """
 
+def find_parotid_info(ss,side):
+    for roi in ss.StructureSetROISequence:
+        name = roi.ROIName.lower()
+        if 'parotid' in name:
+            strippedname = name.split('parotid')
+            if any(('stem' in elem for elem in strippedname)):
+                continue
+            if any((side in elem for elem in strippedname)):
+                return roi.ROIName, roi.ROINumber
+    return None
+
 def is_dicom_file(filename):
     with open(filename, 'rb') as f:
         header = f.read(4)
@@ -251,16 +262,30 @@ def walk_references(filepaths):
         if planfile is not None:
             break
     
+    # deprecated codeblock below - plans often reference SS file without OARs
+    
     # with plan file find ss - allow no plan file if only a single ss file
-    if planfile is None:
-        if len(mod_dict['RTSTRUCT']) != 1:
-            raise Exception("No plan file to guide SS mapping, multiple SS files")
-        else:
-            ss = mod_dict['RTSTRUCT'][0]
+    # if planfile is None:
+    #     if len(mod_dict['RTSTRUCT']) != 1:
+    #         raise Exception("No plan file to guide SS mapping, multiple SS files")
+    #     else:
+    #         ss = mod_dict['RTSTRUCT'][0]
+    # else:
+    #     ss = pair_plan_to_ss(planfile,mod_dict['RTSTRUCT'])
+    #     if ss is None:
+    #         raise Exception("No paired structure set file for the plan file")
+    
+    # short circuiting to just check to see which ss files have parotid contours
+    if len(mod_dict['RTSTRUCT']) != 1: 
+        for ss in mod_dict['RTSTRUCT']:
+            try:
+                find_parotid_info(ss,'r')
+                find_parotid_info(ss,'l')
+                break
+            except:
+                continue
     else:
-        ss = pair_plan_to_ss(planfile,mod_dict['RTSTRUCT'])
-        if ss is None:
-            raise Exception("No paired structure set file for the plan file")
+        ss = mod_dict['RTSTRUCT'][0]
         
     # with ss file find which ct files we care about
     cts = pair_ss_to_cts(ss,mod_dict['CT'])

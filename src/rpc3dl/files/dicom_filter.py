@@ -127,6 +127,13 @@ class Filter:
         for f in [plan, dose, ss]:
             if f is not None:
                 alldcms.append(f)
+        frame_of_ref = []
+        for dcm in alldcms:
+            frameUID = dcmutil.get_attr_deep(dcm, "FrameOfReferneceUID")
+            if frameUID not in frame_of_ref:
+                frame_of_ref.append(frameUID)
+        if len(frame_of_ref) > 1:
+            print("Warning: More than one Frame of Reference in files.")
         
         os.mkdir(os.path.join(location,"temp"))
         for file in allfiles:

@@ -73,7 +73,7 @@ def main():
     print("Modalities to transfer:",keep_modality)
     
     if args.output is not None:
-        with open(args.output,"w") as f:
+        with open(args.output,"a") as f:
             with redirect_stdout(f):
                 standard_migrate(
                     args.src_dir, 
