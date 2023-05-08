@@ -83,11 +83,11 @@ class Preprocessor:
                 assert self.patient_id == x.patient_id, "Patient ID mismatch"
                 
     def get_label(self,labeldf):
-        value = labeldf.loc[self.patient_id,'label']
+        value = labeldf.loc[str(self.patient_id),'label']
         self.label = int(value)
         
     def get_pt_chars(self,pc_file):
-        self.pt_chars = pc_file.loc[self.patient_id].to_numpy()
+        self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
             
     def erase(self,mode):
         if mode.lower() == "ct":

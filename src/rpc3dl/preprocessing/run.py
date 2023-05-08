@@ -104,7 +104,6 @@ def main():
     parser.add_argument(
         '-rm',
         '--remove_files',
-        type=bool,
         action='store_true',
         help="Indicates that we'd like to remove the source files after processing them"
         )

@@ -279,6 +279,8 @@ class PatientInfo:
         # =========
         # possibly add other columns in some other space, or as reference, unsure
         
+        self.scrubbed_data.set_index(self.id_col,inplace=True)
+        
     def include_column(self,field,grouped=False):
         if grouped == False:
             self.scrubbed_data[field] = self.data[field]
@@ -289,7 +291,7 @@ class PatientInfo:
             
     def ohe(self):
         from sklearn.preprocessing import OneHotEncoder
-        self._encoder = OneHotEncoder()
+        self._encoder = OneHotEncoder(sparse_output=False)
         self.original_columns = self.scrubbed_data.columns
         newdata = self._encoder.fit_transform(self.scrubbed_data.to_numpy())
         self.scrubbed_data = pd.DataFrame(
@@ -313,7 +315,7 @@ class PatientInfo:
     def to_csv(self,path):
         if not hasattr(self,"scrubbed_data"):
             raise Exception("You must first perform data scrub")
-        self.scrubbed_data.to_csv(path,index=False)
+        self.scrubbed_data.to_csv(path,index=True)
     
     
 
