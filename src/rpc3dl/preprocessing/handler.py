@@ -84,13 +84,15 @@ class Preprocessor:
         if self.patient_id is None:
             raise Exception("Cannot fetch label without patient ID")
         labeldf.index = labeldf.index.astype(str)
-        self.label = labeldf.loc[str(self.patient_id),'label']
+        if str(self.patient_id) in labeldf.index:
+            self.label = labeldf.loc[str(self.patient_id),'label']
         
     def get_pt_chars(self,pc_file):
         if self.patient_id is None:
             raise Exception("Cannot fetch pt_chars without patient ID")
         pc_file.index = pc_file.index.astype(str)
-        self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
+        if str(self.patient_id) in pc_file.index:
+            self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
             
     def erase(self,mode):
         if mode.lower() == "ct":
