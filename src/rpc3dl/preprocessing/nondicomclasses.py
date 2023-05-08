@@ -211,6 +211,7 @@ class PatientInfo:
         self.data = self.data[self.data['Event Name']=="First Diagnosis "]
         
         self.data = self.data[includesRT]
+        self.data.set_index(self.id_col,inplace=True,drop=False)
         self.encoded = False
         
     def _check_list_input(self,valuelist):
@@ -254,15 +255,15 @@ class PatientInfo:
         self.scrubbed_data = pd.DataFrame(index=self.data[self.id_col])     
         
         # first take single-column
-        self.scrubbed_data['Gender'] = self.data['Gender']
-        self.scrubbed_data['Smoking Stats'] = self.data[
+        self.scrubbed_data.loc[:,'Gender'] = self.data['Gender']
+        self.scrubbed_data.loc[:,'Smoking Stats'] = self.data[
             'Current Smoking Status (within 1 month of treatment)'
             ]        
-        self.scrubbed_data['T Stage'] = self.data['T Stage Clinical']
-        self.scrubbed_data['N Stage'] = self.data['N stage']
-        self.scrubbed_data['M Stage'] = self.data['M stage']
-        self.scrubbed_data['HPV status'] = self.data['HPV status']
-        self.scrubbed_data['Treatment Type'] = self.data['Treatment Type']
+        self.scrubbed_data.loc[:,'T Stage'] = self.data['T Stage Clinical']
+        self.scrubbed_data.loc[:,'N Stage'] = self.data['N stage']
+        self.scrubbed_data.loc[:,'M Stage'] = self.data['M stage']
+        self.scrubbed_data.loc[:,'HPV status'] = self.data['HPV status']
+        self.scrubbed_data.loc[:,'Treatment Type'] = self.data['Treatment Type']
         
         self._encoder = OneHotEncoder(sparse_output=False)
         tempdata = self._encoder.fit_transform(self.scrubbed_data)
@@ -271,50 +272,19 @@ class PatientInfo:
             columns=self._encoder.get_feature_names_out(),
             data=tempdata
             )
+        self.ohe_data = self.ohe_data.astype(int)
         
         # anonymization of age requires 90+ be grouped
-        self.ohe['Age'] = self.data['Age at Diagnosis'].apply(
+        self.ohe_data.loc[:,'Age'] = self.data['Age at Diagnosis'].apply(
             lambda x: 90 if int(x) > 90 else int(x)
             )
         
         for groupfield in ['Race','Disease Site']:
             temp = binarize_grouped_field(self.data,groupfield)
-            self.ohe = pd.concat([self.ohe,temp],axis=1)
+            self.ohe_data = pd.concat([self.ohe_data,temp],axis=1)
         # =========
         # possibly add other columns in some other space, or as reference, unsure
         
-        
-        
-    def include_column(self,field,grouped=False):
-        if grouped == False:
-            self.scrubbed_data[field] = self.data[field]
-        elif grouped == True:
-            self.scrubbed_data[field] = resolve_grouped_field(
-                self.data, field
-                )
-            
-    def ohe(self):
-        from sklearn.preprocessing import OneHotEncoder
-        self._encoder = OneHotEncoder(sparse_output=False)
-        self.original_columns = self.scrubbed_data.columns
-        newdata = self._encoder.fit_transform(self.scrubbed_data.to_numpy())
-        self.scrubbed_data = pd.DataFrame(
-            index=self.data.index,
-            columns=range(newdata.shape[1]),
-            data=newdata
-            )
-        self.encoded = True
-    
-    def reverse_ohe(self):
-        orig_data = self._encoder.inverse_transform(
-            self.scrubbed_data.to_numpy()
-            )
-        self.scrubbed_data = pd.DataFrame(
-            index=self.data.index,
-            columns=self.original_columns,
-            data=orig_data
-            )
-        self.encoded = False
             
     def to_csv(self,path):
         if not hasattr(self,"scrubbed_data"):
