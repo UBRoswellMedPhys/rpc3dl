@@ -279,12 +279,10 @@ def walk_references(filepaths):
     # short circuiting to just check to see which ss files have parotid contours
     if len(mod_dict['RTSTRUCT']) != 1: 
         for ss in mod_dict['RTSTRUCT']:
-            try:
-                find_parotid_info(ss,'r')
-                find_parotid_info(ss,'l')
+            if all([find_parotid_info(ss,'r') is not None,
+                    find_parotid_info(ss,'l') is not None]):
                 break
-            except:
-                continue
+            
     else:
         ss = mod_dict['RTSTRUCT'][0]
         
