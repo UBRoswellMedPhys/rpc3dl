@@ -199,6 +199,8 @@ class Preprocessor:
                 ds_keys = get_dataset_keys(file)
                 if 'base' in ds_keys:
                     ds_keys.remove('base')
+                if 'pt_chars' in ds_keys:
+                    ds_keys.remove('pt_chars')
                 if len(ds_keys) == 0:
                     new_ver = 1
                 else:

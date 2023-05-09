@@ -7,6 +7,8 @@ Created on Sat Sep 17 23:08:42 2022
 
 import numpy as np
 import math
+import os
+import pandas as pd
 
 from pydicom.dataset import FileDataset
 
@@ -131,3 +133,25 @@ def attr_shared(dcms,attr):
         if result is False:
             break
     return result
+
+def backfill_labels(ds,patientID,labelsfolder,condition_descriptor):
+    """
+    Bespoke function (not for general use) to backfill labels for multiple
+    label sets. Takes h5py File object as dataset and assumes that each
+    label file follows the naming convention:
+        {timing}_xero_label.csv
+    """
+    groupname = 'labels'
+    i = 1
+    while groupname in ds.keys():
+        i += 1
+        groupname = 'labels_{}'.format(i)
+    lblgrp = ds.create_group(groupname)
+    lblgrp.attrs['desc'] = condition_descriptor
+    for file in os.listdir(labelsfolder):
+        if file.endswith("xero_label.csv"):
+            timing = file.split("_")[0]
+            lbl_df = pd.read_csv(os.path.join(labelsfolder,file),index_col=0)
+            lbl_df.index = lbl_df.index.astype(str)
+            labelvalue = lbl_df.loc[str(patientID),'label']
+            lblgrp.attrs[timing] = labelvalue
