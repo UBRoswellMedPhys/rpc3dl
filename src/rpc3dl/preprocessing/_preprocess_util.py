@@ -153,5 +153,8 @@ def backfill_labels(ds,patientID,labelsfolder,condition_descriptor):
             timing = file.split("_")[0]
             lbl_df = pd.read_csv(os.path.join(labelsfolder,file),index_col=0)
             lbl_df.index = lbl_df.index.astype(str)
-            labelvalue = lbl_df.loc[str(patientID),'label']
+            if str(patientID) in lbl_df.index:
+                labelvalue = lbl_df.loc[str(patientID),'label']
+            else:
+                labelvalue = 99
             lblgrp.attrs[timing] = labelvalue
