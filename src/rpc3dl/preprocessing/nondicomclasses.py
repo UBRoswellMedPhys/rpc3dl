@@ -5,6 +5,7 @@ Created on Mon Mar 20 00:10:48 2023
 @author: johna
 """
 
+import os
 import pandas as pd
 
 class Condition:
@@ -79,8 +80,11 @@ class Survey:
     def __init__(self,
                  df,
                  time_col = 'eortc_qlqc30_35_timestamp',
-                 id_col = 'MRN'):
+                 id_col = 'MRN',
+                 days_cutoff=90):
+        
         self.data = df.reset_index(drop=True)
+        self.cutoff = days_cutoff
         
         if isinstance(id_col,list):
             self.id_col = self._check_list_input(id_col)
@@ -137,8 +141,47 @@ class Survey:
             print("Note: {} rows dropped due to missing time data.".format(
                 prev_len - new_len
                 ))
-            
+    
+    def bin_surveys(self, dest_dir, fields=None):
+        if fields is None:
+            # use default H&N slate
+            fields = [
+                "overall_health",
+                "qol",
+                "dry_mouth",
+                "sticky_saliva",
+                "pain_mouth",
+                "pain_jaw",
+                "sore_mouth",
+                "pain_throat",
+                "prob_liquids",
+                "prob_pureed",
+                "prob_solid",
+                "prob_eating",
+                "prob_enjoy_meals"
+                "lost_wt",
+                "gained_wt"
+                ]
+        new_df = pd.DataFrame(
+            index=self.data[self.id_col],
+            data=self.data[fields]
+            )
+        new_df.insert(0,"bin","Undefined")
         
+        def parse_values(x):
+            if x < 0:
+                return "acute"
+            elif x < self.cutoff:
+                return "early"
+            elif x >= self.cutoff:
+                return "late"
+        
+        new_df['bin'] = self.data['days_since_RT'].apply(parse_values)
+        destpath = os.path.join(
+            dest_dir,
+            f"{self.cutoff}day_binned_surveys.csv"
+            )
+        new_df.to_csv(destpath)
     
     def evaluate(self,
                  patient,

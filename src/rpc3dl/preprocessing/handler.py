@@ -21,6 +21,16 @@ class Preprocessor:
         self.label = 99
         self.pt_chars = []
         
+    def load_from_file(self,filepath):
+        with h5py.File(filepath,"r") as f:
+            array = f['base'][...]
+            self._ct = array[...,0]
+            self._dose = array[...,1]
+            self._mask = array[...,2]
+            self.pt_chars = f['pt_chars'][...]
+            if 'patient_id' in f.attrs.keys():
+                self.patient_id = f.attrs['patient_id']
+        
     @property
     def ct(self):
         return self._ct
