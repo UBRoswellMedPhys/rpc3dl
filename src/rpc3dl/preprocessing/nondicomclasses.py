@@ -146,6 +146,7 @@ class Survey:
         if fields is None:
             # use default H&N slate
             fields = [
+                self.id_col,
                 "overall_health",
                 "qol",
                 "dry_mouth",
@@ -158,14 +159,11 @@ class Survey:
                 "prob_pureed",
                 "prob_solid",
                 "prob_eating",
-                "prob_enjoy_meals"
+                "prob_enjoy_meals",
                 "lost_wt",
                 "gained_wt"
                 ]
-        new_df = pd.DataFrame(
-            index=self.data[self.id_col],
-            data=self.data[fields]
-            )
+        new_df = self.data[fields].copy(deep=True)
         new_df.insert(0,"bin","Undefined")
         
         def parse_values(x):

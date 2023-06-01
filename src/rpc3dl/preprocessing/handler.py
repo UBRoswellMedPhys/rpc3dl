@@ -96,6 +96,27 @@ class Preprocessor:
         labeldf.index = labeldf.index.astype(str)
         if str(self.patient_id) in labeldf.index:
             self.label = labeldf.loc[str(self.patient_id),'label']
+            
+    def populate_surveys(self,binned_survey_df):
+        surveys = binned_survey_df
+        surveys['mrn'] = surveys['mrn'].astype(int).astype(str)
+        fields = surveys.columns[2:]
+        
+        
+        subset = surveys[surveys['mrn']==self.patient_id]
+        if len(subset) == 0:
+            # kill process if no surveys match
+            return None
+        
+        self.surveys = {}
+        #f.create_group("surveys")
+        self.survey_fields = np.array(fields).astype('S')
+        for time in ['acute','early','late']:
+            subsubset = subset[subset['bin']==time]
+            if len(subsubset)==0:
+                continue
+            survey_array = subsubset.iloc[:,2:].to_numpy()
+            self.surveys[time] = survey_array
         
     def get_pt_chars(self,pc_file):
         if self.patient_id is None:
@@ -185,7 +206,13 @@ class Preprocessor:
             if getattr(self,subarr) is not None:
                 getattr(self,subarr).reset_augments()
                 
-    def save(self,fname,boxed=False,boxshape=None,maskcentered=False):
+    def save(self,
+             fname,
+             boxed=False,
+             boxshape=None,
+             maskcentered=False,
+             overwrite=True):
+        
         self.enforce_compat()
         # package into 4D array
         if boxed is False:
@@ -211,6 +238,8 @@ class Preprocessor:
                     ds_keys.remove('base')
                 if 'pt_chars' in ds_keys:
                     ds_keys.remove('pt_chars')
+                if 'surveys' in ds_keys:
+                    ds_keys.remove('surveys')
                 if len(ds_keys) == 0:
                     new_ver = 1
                 else:
@@ -220,9 +249,21 @@ class Preprocessor:
                     'augment_{}'.format(new_ver), data=final_array
                     )
             file.attrs['label'] = int(self.label)
-            if 'pt_chars' in file.keys():
-                del file['pt_chars']
-            file.create_dataset('pt_chars', data=self.pt_chars)
+            if overwrite:
+                if 'pt_chars' in file.keys():
+                    del file['pt_chars']
+                if 'surveys' in file.keys():
+                    del file['surveys']
+                    
+            if 'pt_chars' not in file.keys():
+                file.create_dataset('pt_chars', data=self.pt_chars)
+            if 'surveys' not in file.keys():
+                file.create_group("surveys")
+                for time in ['acute','early','late']:
+                    if time in self.surveys.keys():
+                        file['surveys'].create_dataset(
+                            time,data=self.surveys[time]
+                            )
             
                 
                 

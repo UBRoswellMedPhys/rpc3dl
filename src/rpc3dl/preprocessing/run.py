@@ -100,6 +100,10 @@ def main():
         help="Description of label condition to identify how labels were defined"
         )
     parser.add_argument(
+        '-s','--surveys', type=str, default=None,
+        help="Path to time-binned survey file."
+        )
+    parser.add_argument(
         '-ch',
         '--pt_chars',
         type=str,
