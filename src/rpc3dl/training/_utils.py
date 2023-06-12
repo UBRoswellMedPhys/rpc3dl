@@ -785,6 +785,43 @@ def pad_image(source,endshape,padvalue=0.0):
     new[slices] = source
     return new
 
+def process_surveys(file, time='all',mode='mean',scale10thresh=5,scale4thresh=3):
+    if time == 'all':
+        time = ['acute','early','late']
+    elif isinstance(time,str):
+        time = [time]
+    
+    surveys = []
+    for t in time:
+        if t not in file['surveys'].keys():
+            continue
+        for subset in file['surveys'][t][...]:
+            surveys.append(subset)
+    
+    if len(surveys) == 0:
+        return None
+  
+    surveys = np.stack(surveys,axis=0)
+    
+    # if 'rawmean', shortcut out of function before processing into labels
+    if mode == 'rawmean':
+        return np.mean(surveys,axis=0)
+    
+    # split columns based on scale (10pt scale vs 4pt scale)
+    ovr = surveys[:,:2]
+    regular = surveys[:,2:13]
+    if mode == 'max':
+        ovr = np.amin(ovr,axis=0)
+        regular = np.amax(regular,axis=0)
+    elif mode == 'mean':
+        ovr = np.mean(ovr,axis=0)
+        regular = np.mean(regular, axis=0)
+    
+    ovr = np.array([1 if x < scale10thresh else 0 for x in ovr])
+    regular = np.array([1 if x >= scale4thresh else 0 for x in regular])
+    merged = np.concatenate([ovr,regular],axis=0)
+    return merged
+
 
 if __name__ == '__main__':
     # for i in [1,2,3,4]:

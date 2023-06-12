@@ -188,6 +188,10 @@ def main():
         labeldf = pd.read_csv(args.label,index_col=0)
         prepper.get_label(labeldf)
         print("Retrieved label:", prepper.label)
+    
+    if args.surveys is not None:
+        binned_surveys = pd.read_csv(args.surveys)
+        prepper.populate_surveys(binned_surveys)
         
     if args.pt_chars is not None:
         pc_file = pd.read_csv(args.pt_chars,index_col=0)

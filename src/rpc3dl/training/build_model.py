@@ -74,7 +74,7 @@ def organ_path(input_shape=(40,96,96,3),filter_depth=32):
     organ_model = keras.Model(inputs=inputs,outputs=res3)
     return organ_model
 
-def non_volume_path(length=38):
+def non_volume_path(length=69):
     inputs = keras.Input(shape=(length,))
     x = layers.Dense(units=32, activation="relu")(inputs)
     x = layers.Dense(units=32, activation="relu")(x)
@@ -114,29 +114,29 @@ def dual_resnet(input_shape=(40,96,96,3),
     return model
 
 def single_resnet(input_shape=(40,256,256,3),
-                  organ_resnet_depth=32,
+                  organ_resnet_depth=128,
                   with_chars=True,
-                  nonvol=38):
+                  nonvol=69):
     inputs = keras.Input(input_shape)
     x = organ_path(input_shape,filter_depth=organ_resnet_depth)(inputs)
-    x = layers.Dropout(0.5)(x)
     x = layers.Conv3D(
-        filters=32, kernel_size=(5, 5, 5), strides=(1, 2, 2),
+        filters=128, kernel_size=(5, 5, 5), strides=(1, 2, 2),
         padding='valid', activation='relu'
         )(x)
     x = layers.Conv3D(
-        filters=32, kernel_size=(3,3,3), strides=(2, 2, 2),
+        filters=128, kernel_size=(3,3,3), strides=(2, 2, 2),
         padding='valid',activation='relu'
         )(x)
     x = layers.GlobalAveragePooling3D()(x)
-    x = layers.Dense(units=16,activation="relu")(x)
+    x = layers.Dropout(0.25)(x)
+    x = layers.Dense(units=64,activation="relu")(x)
     if with_chars:
         nonvolinput = keras.Input(shape=(nonvol,))
         y = non_volume_path(length=nonvol)(nonvolinput)
         x = layers.Concatenate()([x,y])
-    x = layers.Dense(units=16,activation="relu")(x)
+    x = layers.Dense(units=64,activation="relu")(x)
     x = layers.Dropout(0.5)(x)
-    x = layers.Dense(units=8,activation="relu")(x)
+    x = layers.Dense(units=32,activation="relu")(x)
     final = layers.Dense(units=1,activation="sigmoid")(x)
     
     if with_chars:

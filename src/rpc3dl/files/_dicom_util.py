@@ -489,3 +489,9 @@ def organize_folder(folder, dest):
             if not os.path.exists(sendto):
                 os.mkdir(sendto)
             dcm.save_as(os.path.join(sendto, newfname))
+            
+def get_rois(ss):
+    rois = {}
+    for roi in ss.StructureSetROISequence:
+        rois[roi.ROIName] = roi.ROINumber
+    return rois
