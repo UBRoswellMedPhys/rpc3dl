@@ -21,12 +21,14 @@ from _utils import process_surveys
 DATA_DIR = r"E:\alldata_anon"
 POS_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_positive.txt"
 NEG_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_negative.txt"
-CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN6"
+CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN7"
 
 TIME_WINDOW = 'early' # 480 patients
-VALID_PTS = 480
 
-BATCH_SIZE = 37
+# train patients = 290
+# test patients = 46
+TEST_PTS = 46
+BATCH_SIZE = 10
 
 PT_CHARS = False
 INCLUDE_AUGMENTS = False
@@ -34,16 +36,18 @@ INCLUDE_AUGMENTS = False
 # =============================
 # PUT ANY NOTES HERE
 
-notes = """Model couldn't train even with added complexity. Previously, more
-complex models that DID successfully train were essentially overfitting. There
-would be a very brief period where they would seem as though they were starting
-to trend up and then train/val would break off. I could just gradually tinker
-with optimization but this seems WAY harder than it should be, especially when 
-comparing to Men et al. I'm going to try removing the patients that received
-any sort of surgery - this will just be the patients who received either RT
-only or chemo + RT.
+notes = """Secondary dropout decrease seemed to help a little, but I'm seeing
+some heavy fluctuation of both train loss and val loss. Gut instinct here is
+that learning rate is too large? It's usually hitting the comfy 0.69 range
+within one or two epochs but then bounces around. The other variable I'd like
+to play with is batch size.
 
-For good measure, also increasing the depth of the model slightly.
+For this run let's set up a learning rate schedule that will give it 5 epochs
+of fast learning rate (0.001) then slow it down to 0.0001 for 10 and then
+perhaps one more step down to 0.00005?
+
+Also it's currently learning to be too heavy-handed on positive recs...maybe
+try a slight class weight to encourage it to learn negatives?
 """
 
 
@@ -93,12 +97,13 @@ with open(NEG_SOURCE,"r") as f:
     neg_files = f.read()
     neg_files = neg_files.split("\n")
     
-random.seed(42)
+random.seed(98) # prev was 42
 random.shuffle(pos_files)
 random.shuffle(neg_files)
 
-train_files = pos_files[20:] + neg_files[20:]
-test_files = pos_files[:20] + neg_files[:20]
+splitval = int(TEST_PTS/2)
+train_files = pos_files[splitval:] + neg_files[splitval:]
+test_files = pos_files[:splitval] + neg_files[:splitval]
 
 print("Number of training patients:",len(train_files))
 print("Number of test patients:", len(test_files))
@@ -159,6 +164,7 @@ else:
 # setup callbacks, model config
 checkpoint = keras.callbacks.ModelCheckpoint(
     os.path.join(CHECKPOINT_DIR,"model.{epoch:02d}-{val_loss:.2f}.h5"),
+    monitor='val_auc',
     save_weights_only=False,
     save_best_only=True
     )
@@ -166,6 +172,18 @@ earlystopping = keras.callbacks.EarlyStopping(
     monitor='val_loss',
     min_delta=0,
     patience=30
+    )
+
+def scheduler(epoch,lr):
+    if epoch < 10:
+        return 0.001
+    elif 10 < epoch < 30:
+        return 0.0005
+    else:
+        return 0.00001
+
+lrschedule = keras.callbacks.LearningRateScheduler(
+    scheduler
     )
 
 if not os.path.exists(CHECKPOINT_DIR):
@@ -182,7 +200,7 @@ with tf.device("/gpu:0"):
         nonvol=69,
         organ_resnet_depth=16
         )
-    optim = keras.optimizers.Adam(learning_rate=0.0005)
+    optim = keras.optimizers.Adam(learning_rate=0.001)
     model.compile(
         optimizer=optim,
         loss=keras.losses.BinaryCrossentropy(),
@@ -201,7 +219,7 @@ with tf.device("/gpu:0"):
         steps_per_epoch=int(len(gen_input)/BATCH_SIZE),
         epochs=400,
         verbose=1,
-        callbacks=[checkpoint, earlystopping],
+        callbacks=[checkpoint, earlystopping, lrschedule],
         )
 
 
