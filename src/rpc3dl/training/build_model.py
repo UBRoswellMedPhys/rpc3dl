@@ -128,15 +128,15 @@ def single_resnet(input_shape=(40,256,256,3),
         padding='valid',activation='relu'
         )(x)
     x = layers.GlobalAveragePooling3D()(x)
-    x = layers.Dropout(0.25)(x)
+    #x = layers.Dropout(0.25)(x)
     x = layers.Dense(units=64,activation="relu")(x)
     if with_chars:
         nonvolinput = keras.Input(shape=(nonvol,))
         y = non_volume_path(length=nonvol)(nonvolinput)
         x = layers.Concatenate()([x,y])
     x = layers.Dense(units=64,activation="relu")(x)
-    x = layers.Dropout(0.25)(x)
-    x = layers.Dense(units=32,activation="relu")(x)
+    x = layers.Dropout(0.33)(x)
+    x = layers.Dense(units=64,activation="relu")(x)
     final = layers.Dense(units=1,activation="sigmoid")(x)
     
     if with_chars:

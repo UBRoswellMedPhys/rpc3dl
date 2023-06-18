@@ -16,35 +16,15 @@ from pydicom.errors import InvalidDicomError
 from rpc3dl.files._dicom_util import (
     get_rois
     )
+from rpc3dl.preprocessing.arrayclasses import (
+    PatientCT, PatientMask, PatientDose
+    )
 
 # TODO - will need to update these imports to absolute rpc3dl imports
-from popups import ROISelectionPopUp
-
-class SimpleTable(tk.Frame):
-    # reference - https://stackoverflow.com/questions/11047803/creating-a-table-look-a-like-tkinter/11049650#11049650
-    def __init__(self, parent, rows=10, columns=2):
-        # use black background so it "peeks through" to 
-        # form grid lines
-        tk.Frame.__init__(self, parent, background="black")
-        self._widgets = []
-        for row in range(rows):
-            current_row = []
-            for column in range(columns):
-                label = tk.Label(self, text=" ", 
-                                 borderwidth=0, width=10)
-                label.grid(row=row, column=column, sticky="nsew", padx=1, pady=1)
-                current_row.append(label)
-            self._widgets.append(current_row)
-
-        for column in range(columns):
-            self.grid_columnconfigure(column, weight=1)
-
-
-    def set(self, row, column, value):
-        widget = self._widgets[row][column]
-        widget.configure(text=value)
+from gui_objects import ROISelectionPopUp, LabelFileProcess, SimpleTable
 
 class RoI:
+    # simple class object to hold a few related attributes
     def __init__(self,name=None,ref_num=None):
         self.name = name
         self.ref_num = ref_num
@@ -57,18 +37,32 @@ class RoI:
         return self.name
 
 class PreprocessApp(tk.Tk):
-    
+    # main app
     def __init__(self):
         # instantiate some initial attributes (blank)
         super().__init__()
         self.FOLDER = " " * 20
         self.DCMFILES = {}
         self.roi = []
-        self.configuration = {}
+        self.label_settings = None
+        self.label_file = None
+        self.pt_info = None
         
     @property
     def roi_chosen(self):
         return sum([r.status for r in self.roi])
+    
+    @property
+    def labelfilestatus(self):
+        if self.label_settings is not None and self.label_file is not None:
+            return "Configured"
+        else:
+            return "Not configured"
+        
+    def calculate_label(self):
+        if self.labelfilestatus != "Configured":
+            return None
+        # TODO - use PatientID to find subset of 
     
     def select_dir(self):
         # method call on "Browse" button to choose directory housing DICOM files
@@ -113,47 +107,19 @@ class PreprocessApp(tk.Tk):
                 for roi, ref_num in roi_dict.items():
                     self.roi.append(RoI(roi,ref_num))
     
-    def open_popup(self):
+    def open_ROIpopup(self):
         self.roi_popup = ROISelectionPopUp(
-            self, self.roi, callback=self.popup_close
+            self, self.roi, callback=self.ROIpopup_close
             )
         
-    def popup_close(self):
+    def ROIpopup_close(self):
         self.roi = self.roi_popup.roi_list
         self.display_num_roi['text'] = f"ROI Selected: {self.roi_chosen}"
-
-    # def toggle_checkbox(self, var, index):
-    #     # function for handling checkbox ticking in ROI selection
-    #     self.roi[index].status = var.get()
-
-    # def open_popup(self):
-    #     popup = tk.Toplevel(self)
-    #     popup.title("ROI Selection")
-    #     popup.minsize(200,200)
-
-    #     # Create checkboxes in the popup window
-    #     for i, r in enumerate(self.roi):
-    #         checkbox_var = tk.BooleanVar(value=r.status)
-    #         checkbox = tk.Checkbutton(
-    #             popup, text=r.name, variable=checkbox_var,
-    #             onvalue=True, offvalue=False,
-    #             command=lambda var=checkbox_var, index=i: self.toggle_checkbox(var, index))
-    #         checkbox.pack(anchor="w")
-
-    #     # Add a confirmation button in the popup window
-    #     confirm_button = tk.Button(
-    #         popup, 
-    #         text="Confirm", 
-    #         command=lambda: self.handle_popup_selection(popup))
-    #     confirm_button.pack()
-
-    # def handle_popup_selection(self, popup):
-    #     # Update display
-    #     # BUG - if user toggles checkboxes but then EXITS the popup window,
-    #     # the status of ROIs will still be updated but display will not update
-    #     self.display_num_roi['text'] = f"ROI Selected: {self.roi_chosen}"
-    #     # Close the popup window
-    #     popup.destroy()
+        
+    def labelfile_open(self):
+        self.label_file_popup = LabelFileProcess(
+            self,self.label_entry
+            )
 
         
     def run(self):
@@ -164,13 +130,19 @@ class PreprocessApp(tk.Tk):
         tk.Label(self,text="Select Folder:").grid(row=1,column=0)
         self.selected_folder = tk.Label(self,text=self.FOLDER,bd=2,bg="#DFDAD9")
         self.selected_folder.grid(row=1,column=1,columnspan=2,padx=5)
-        
         tk.Button(self,text="Browse",command=self.select_dir).grid(row=1,column=3,padx=5)
         tk.Button(self,text="Stage Files",command=self.stage_files).grid(row=1,column=4,padx=5)
+        tk.Label(self,text="Label file status:").grid(row=1,column=5,padx=10)
+        self.label_file_status_display = tk.Label(
+            self,text=self.labelfilestatus,bd=2,bg="#DFDAD9"
+            )
+        self.label_file_status_display.grid(row=1,column=6)
+        
         tk.Label(self,text="Files Staged").grid(row=2,column=1,columnspan=3,pady=10)
+        
         self.file_table = SimpleTable(self,rows=1,columns=2)
         self.file_table.grid(row=3,column=1,columnspan=3)
-        tk.Button(self,text="Select ROI",command=self.open_popup).grid(row=4,column=2,pady=5)
+        tk.Button(self,text="Select ROI",command=self.open_ROIpopup).grid(row=4,column=2,pady=5)
         self.display_num_roi = tk.Label(self,text=f"ROI Selected: {self.roi_chosen}")
         self.display_num_roi.grid(row=4,column=0,columnspan=2)
         self.options_menu = tk.Frame(self,bd=5)
@@ -205,7 +177,17 @@ class PreprocessApp(tk.Tk):
         bblabel.grid(row=2,column=2)
         bbentry.grid(row=2,column=1)
         
-        def validate_options():
+        # row 3 - label handling
+        tk.Label(self.options_menu,text="Assign label:").grid(row=3,column=0)
+        self.label_entry = tk.Entry(self.options_menu,state=tk.NORMAL)
+        self.label_entry.grid(row=3,column=1)
+        tk.Button(self.options_menu,text="Configure label file",command=self.labelfile_open).grid(row=3,column=2)
+        
+        
+        def validate_options(app):
+            # probably want to split this up into multiple subfunctions
+            good = True
+            # handle bounding box
             if bounding_box_bool.get():
                 bb = bbentry.get()
                 # try both delimiters, x and comma
@@ -220,22 +202,30 @@ class PreprocessApp(tk.Tk):
                 except Exception as e:
                     bbentry.delete(0,tk.END)
                     bbentry.config(bg="red")
+                    good = False
                     print(e)
-            
+                    
+            # handle pixel size
             try:
-                float(px_size.get())
+                pixel_size = float(px_size.get())
                 px_size.config(bg='white')
                 print("Pixel size valid: {}".format(px_size.get()))
             except:
                 px_size.delete(0, tk.END)
                 px_size.config(bg='red')
+                good = False
+            
+            # handle label
+            patient_label = app.label_entry.get()
                 
-        validate_button = tk.Button(
+            
+                
+        run_button = tk.Button(
             self.options_menu,
             text="Run",
-            command=validate_options
+            command=lambda app=self: validate_options(app)
             )
-        validate_button.grid(row=3,column=1)
+        run_button.grid(row=4,column=1)
                 
         
         self.mainloop()

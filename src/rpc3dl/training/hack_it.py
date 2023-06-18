@@ -21,33 +21,26 @@ from _utils import process_surveys
 DATA_DIR = r"E:\alldata_anon"
 POS_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_positive.txt"
 NEG_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_negative.txt"
-CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN7"
+CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN12"
 
 TIME_WINDOW = 'early' # 480 patients
 
 # train patients = 290
 # test patients = 46
 TEST_PTS = 46
-BATCH_SIZE = 10
+BATCH_SIZE = 29
 
-PT_CHARS = False
+PT_CHARS = True
 INCLUDE_AUGMENTS = False
 
 # =============================
 # PUT ANY NOTES HERE
 
-notes = """Secondary dropout decrease seemed to help a little, but I'm seeing
-some heavy fluctuation of both train loss and val loss. Gut instinct here is
-that learning rate is too large? It's usually hitting the comfy 0.69 range
-within one or two epochs but then bounces around. The other variable I'd like
-to play with is batch size.
+notes = """
 
-For this run let's set up a learning rate schedule that will give it 5 epochs
-of fast learning rate (0.001) then slow it down to 0.0001 for 10 and then
-perhaps one more step down to 0.00005?
+Adding back in patient chars, upped the dropout.
+Haven't done normalization yet, probably work that tomorrow
 
-Also it's currently learning to be too heavy-handed on positive recs...maybe
-try a slight class weight to encourage it to learn negatives?
 """
 
 
@@ -217,7 +210,7 @@ with tf.device("/gpu:0"):
         validation_data=(valX, valY),
         # batch_size=12,
         steps_per_epoch=int(len(gen_input)/BATCH_SIZE),
-        epochs=400,
+        epochs=75,
         verbose=1,
         callbacks=[checkpoint, earlystopping, lrschedule],
         )
