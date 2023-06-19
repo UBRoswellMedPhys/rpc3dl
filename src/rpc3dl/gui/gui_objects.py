@@ -12,6 +12,7 @@ from tkinter import filedialog as tkfd
 import pandas as pd
 
 from rpc3dl.preprocessing.nondicomclasses import Condition, CompositeCondition
+from rpc3dl.files._dicom_util import get_attr_deep, organize_list
 
 class SimpleTable(tk.Frame):
     # reference - https://stackoverflow.com/questions/11047803/creating-a-table-look-a-like-tkinter/11049650#11049650
@@ -36,6 +37,52 @@ class SimpleTable(tk.Frame):
     def set(self, row, column, value):
         widget = self._widgets[row][column]
         widget.configure(text=value)
+        
+class ConflictResolver(tk.Toplevel):
+    def __init__(self,master,DCMFILES,field=None):
+        super().__init__(master)
+        self.title("Conflict Resolver: {}".format(field))
+        self.transient(master)
+        self.parent_app = master
+        
+        flatDCMFILES = []
+        for k,v in DCMFILES.items():
+            flatDCMFILES += v
+        
+        # prep a nested dictionary
+        self.sorted_files = organize_list(flatDCMFILES,field)
+        for k,v in self.sorted_files.items():
+            self.sorted_files[k] = organize_list(v,"Modality")
+        options = list(self.sorted_files.keys())
+        self.selected_val = tk.StringVar(self)
+        tk.OptionMenu(self,self.selected_val,*options).pack(pady=10)
+        tk.Button(self,text="Save",command=self.save).pack(pady=5)
+        self.file_display = SimpleTable(self,rows=1,columns=2)
+        self.file_display.pack()
+        self.selected_val.set(options[0])
+        self.selected_val.trace("w",self.update_table)
+        
+        
+    def update_table(self, *args):
+        selection = self.selected_val.get()
+        self.file_display.pack_forget()
+        self.file_display = SimpleTable(
+            self,
+            rows=len(self.sorted_files[selection]),
+            columns=2
+            )
+        for i, (k,v) in enumerate(self.sorted_files[selection].items()):
+            self.file_display.set(i,0,k)
+            self.file_display.set(i,1,len(v))
+        self.file_display.pack()
+        
+    def save(self):
+        selection = self.selected_val.get()
+        self.parent_app.DCMFILES = self.sorted_files[selection]
+        self.parent_app.update_file_status()
+        
+        self.destroy()
+        
        
 class ROISelectionPopUp(tk.Toplevel):
     def __init__(self,master,roilist,callback=None):
@@ -102,7 +149,7 @@ class LabelFileProcess(tk.Toplevel):
         self.timedropdown.grid(row=2,column=0,columnspan=2)
         self.timedropdown.configure(state=tk.DISABLED)
         tk.Label(self,text="(Requires Patient Info File)").grid(row=3,column=0,columnspan=2)
-        method_options = ['Mean','Max','Min']
+        method_options = ['Majority','Any','All'] # TODO - add things like mean
         self.multimethod = tk.StringVar(self)
         self.multimethod.set(method_options[0])
         methoddropdown = tk.OptionMenu(
@@ -198,5 +245,7 @@ class LabelFileProcess(tk.Toplevel):
         fullconfig['condition'] = fullcondition
         fullconfig['method'] = self.multimethod.get()
         self.parent_app.label_settings = fullconfig
+        self.parent_app.label_file_status_display['text'] = \
+            self.parent_app.labelfilestatus
         self.parent_app.calculate_label()
         self.destroy()

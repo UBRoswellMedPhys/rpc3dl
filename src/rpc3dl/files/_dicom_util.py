@@ -44,7 +44,7 @@ def is_dicom_file(filename):
 def organize_list(dcmlist,attribute):
     org_dict = {}
     for dcm in dcmlist:
-        val = getattr(dcm,attribute)
+        val = get_attr_deep(dcm,attribute)
         if val not in org_dict.keys():
             org_dict[val] = []
         org_dict[val].append(dcm)
