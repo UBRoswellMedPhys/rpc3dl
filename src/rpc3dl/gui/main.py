@@ -19,6 +19,7 @@ from rpc3dl.files._dicom_util import (
 from rpc3dl.preprocessing.arrayclasses import (
     PatientCT, PatientMask, PatientDose
     )
+from rpc3dl.preprocessing.handler import Preprocessor
 
 # TODO - will need to update these imports to absolute rpc3dl imports
 from gui_objects import ROISelectionPopUp, LabelFileProcess, SimpleTable, ConflictResolver
@@ -49,7 +50,13 @@ class PreprocessApp(tk.Tk):
         self.label_settings = None
         self.label_file = None
         self.pt_info = None
-        self.active_patientID = None
+        
+    @property
+    def active_patientID(self):
+        if len(self._unique_patientIDs) == 1:
+            return self._unique_patientIDs[0]
+        else:
+            return None
         
     @property
     def roi_chosen(self):
@@ -229,6 +236,27 @@ class PreprocessApp(tk.Tk):
         self.label_file_popup = LabelFileProcess(
             self,self.label_entry
             )
+        
+    def build_arrays(self):
+        """Function which builds the actual 4D array from the stored DCMFILES.
+        """
+        ct_array = PatientCT(self.DCMFILES['CT'])
+        dose_array = PatientDose(self.DCMFILES['RTDOSE'][0]) # TODO - support multi-file beam pass through
+        dose_array.align_with(ct_array)
+        mask_arrays = []
+        for r in self.roi:
+            if r.status == True:
+                new_mask = PatientMask(
+                    reference=ct_array,
+                    ssfile=self.DCMFILES['RTSTRUCT'][0],
+                    roi=r.name
+                    )
+                mask_arrays.append(new_mask)
+        handler = Preprocessor(patient_id=self.active_patientID)
+        handler.attach(ct_array)
+        handler.attach(dose_array)
+        handler.attach(mask_arrays)
+        self.handler = handler
 
         
     def run(self):
@@ -236,7 +264,7 @@ class PreprocessApp(tk.Tk):
         app screen and route user flow through different steps.
         """
         self.title("RPC3DL Preprocessing Tool")
-        self.geometry("600x520+50+50")
+        self.geometry("800x600+200+200")
         self.columnconfigure(1,minsize=80)
         
         # ==== Row 0: Title Text ====
@@ -352,6 +380,7 @@ class PreprocessApp(tk.Tk):
             
             # handle label
             patient_label = app.label_entry.get()
+            self.build_arrays()
                 
         run_button = tk.Button(
             self.options_menu,

@@ -16,12 +16,12 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 import build_model as models
-from _utils import process_surveys
+from _utils import process_surveys, window_level
 
 DATA_DIR = r"E:\alldata_anon"
 POS_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_positive.txt"
 NEG_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_negative.txt"
-CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN12"
+CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN15"
 
 TIME_WINDOW = 'early' # 480 patients
 
@@ -32,14 +32,23 @@ BATCH_SIZE = 29
 
 PT_CHARS = True
 INCLUDE_AUGMENTS = False
+WL = True
+NORMALIZE = True
+IPSICONTRA_RECTIFY = True
 
 # =============================
 # PUT ANY NOTES HERE
 
 notes = """
 
-Adding back in patient chars, upped the dropout.
-Haven't done normalization yet, probably work that tomorrow
+
+Rerun same as run 14 but slightly lowered the dropout
+
+Also added the ipsi/contra rectifying
+
+Kept everything the same, added normalization. Re-running with patient chars added
+ - still need to revisit those and see about making the organization of them
+cleaner...some of them do not need to be OHE, such as tumor stage.
 
 """
 
@@ -56,13 +65,22 @@ lblidx = 3
 
 
 # Build generator
-def datagen(root,filelist,labeltype="early",with_chars=False):
+def datagen(root,filelist,labeltype="early",with_chars=False,windowlevel=False,
+            normalize=True):
     i = 0
     while True:
         file, key = filelist[i]
         filepath = os.path.join(root,file)
         with h5py.File(filepath,"r") as f:
             X = f[key][...]
+            if IPSICONTRA_RECTIFY is True:
+                midpoint = int(X.shape[2]/2)
+                if np.sum(X[:,:,midpoint:,1]) > np.sum(X[:,:,:midpoint,1]):
+                    X = np.flip(X,axis=2)
+            if windowlevel is True:
+                X[...,0] = window_level(X[...,0],normalize=normalize)
+            if normalize is True:
+                X[...,1] = X[...,1] / 70
             Y = process_surveys(f,labeltype,'mean',scale4thresh=2.7)[lblidx]
             if with_chars:
                 XX = f['pt_chars'][...]
@@ -125,7 +143,8 @@ else:
     outsig = (tf.TensorSpec(shape=(40,128,128,3),dtype=tf.float32),
               tf.TensorSpec(shape=(),dtype=tf.int32))
 
-train_generator = datagen(DATA_DIR, gen_input, with_chars=PT_CHARS)
+train_generator = datagen(DATA_DIR, gen_input, with_chars=PT_CHARS,
+                          windowlevel=WL,normalize=NORMALIZE)
 train_dataset = tf.data.Dataset.from_generator(
     genwrapper(train_generator),
     output_signature=outsig
@@ -139,7 +158,16 @@ val_charsX = []
 valY = []
 for file in test_files:
     with h5py.File(os.path.join(DATA_DIR,file),"r") as f:
-        val_volumeX.append(f['base'][...])
+        X = f['base'][...]
+        if IPSICONTRA_RECTIFY is True:
+            midpoint = int(X.shape[2]/2)
+            if np.sum(X[:,:,midpoint:,1]) > np.sum(X[:,:,:midpoint,1]):
+                X = np.flip(X,axis=2)
+        if WL is True:
+            X[...,0] = window_level(X[...,0],normalize=NORMALIZE)
+        if NORMALIZE is True:
+            X[...,1] = X[...,1] / 70
+        val_volumeX.append(X)
         val_charsX.append(f['pt_chars'][...])
         valY.append(
             process_surveys(f,TIME_WINDOW,'mean',scale4thresh=2.7)[lblidx]
@@ -162,7 +190,7 @@ checkpoint = keras.callbacks.ModelCheckpoint(
     save_best_only=True
     )
 earlystopping = keras.callbacks.EarlyStopping(
-    monitor='val_loss',
+    monitor='val_auc',
     min_delta=0,
     patience=30
     )

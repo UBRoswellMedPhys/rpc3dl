@@ -454,6 +454,7 @@ class PatientMask(PatientArray):
         # we don't use super().__init__() for PatientMask due to the unique
         # structure of ss files
         self.voidval = 0
+        self.roi_name = roi
         self.studyUID = ssfile.StudyInstanceUID
         self.patient_id = ssfile.PatientID
         self.FoR = reference.FoR

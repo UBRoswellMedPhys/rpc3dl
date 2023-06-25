@@ -16,7 +16,7 @@ class Preprocessor:
     def __init__(self,patient_id=None):
         self._ct = None
         self._dose = None
-        self._mask = None
+        self._mask = []
         self.patient_id = patient_id
         self.label = 99
         self.pt_chars = []
@@ -59,16 +59,24 @@ class Preprocessor:
     
     @property
     def mask(self):
-        return self._mask
+        if len(self._mask) == 1:
+            return self._mask[0]
+        else:
+            return self._mask
     
     @mask.setter
     def mask(self, value):
         if self._mask is None:
+            if not isinstance(value, list):
+                value = [value] # enforces that mask is always a list
             self._mask = value
         else:
             raise ValueError(
                 "Cannot overwrite mask array - must run erase function first"
                 )
+            
+    def append_mask(self,newmask):
+        self._mask.append(newmask)
             
     @property
     def augmented(self):
@@ -88,7 +96,7 @@ class Preprocessor:
                 self.dose = x
             elif isinstance(x, arrayclass.PatientMask):
                 x.array = x.array.astype(np.int16)
-                self.mask = x
+                self.append_mask(x)
                 
     def get_label(self,labeldf):
         if self.patient_id is None:
