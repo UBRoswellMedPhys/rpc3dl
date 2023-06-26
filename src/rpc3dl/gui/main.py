@@ -22,7 +22,7 @@ from rpc3dl.preprocessing.arrayclasses import (
 from rpc3dl.preprocessing.handler import Preprocessor
 
 # TODO - will need to update these imports to absolute rpc3dl imports
-from gui_objects import ROISelectionPopUp, LabelFileProcess, SimpleTable, ConflictResolver
+from gui_objects import ROISelectionPopUp, LabelFileProcess, SimpleTable, ConflictResolver, VisualReview
 
 class RoI:
     # simple class object to hold a few related attributes
@@ -165,6 +165,7 @@ class PreprocessApp(tk.Tk):
         that is a key piece of this tool.
         """
         self.DCMFILES = {}
+        self.roi = []
         filepaths = [
             os.path.join(self.FOLDER,file) for file in os.listdir(self.FOLDER)
             ]
@@ -236,11 +237,56 @@ class PreprocessApp(tk.Tk):
         self.label_file_popup = LabelFileProcess(
             self,self.label_entry
             )
+    
+    def preview_popup(self):
+        self.preview = VisualReview(self,self.handler)
+        
+    def help_func(self):
+        helpstr = """
+This is an early prototype of a data preprocessing tool to allow quick and easy
+data preparation for deep learning research. This tool takes DICOM files and
+converts them into arrays. The key time savings involve automatically handling
+the alignment of CT/dose/structure set data and pixel rescaling. The output of
+this tool can be used as direct input data for a neural network. Future tools
+will help you select the most approrpiate architecture for your research.
+
+Steps:
+    - Select directory holding your DICOM files
+    - Click "Stage Files" to load the DICOM contents of the selected directory
+    - You will then see a summary of the loaded files. If there are any
+    conflicts in Patient ID or FrameOfReferenceUID, then you will see "File
+    Conflicts" show "True".
+    - If there are file conflicts, you can click Resolve Conflicts to select
+    which PatientID/FrameOfReferenceUID you'd like to keep staged. Note that
+    you must have just one structure set file and just one dose file for this
+    tool to work.
+    - You may manually set a label for the staged patient. Also, if 
+    your research involves endpoints that are not related to the patient
+    volume, the tool accepts a "label file" CSV. Click on "Configure Label File"
+    to open the view to set this up.
+    - Adjust configuration settings to your liking. They are as follows:
+        o Pixel Size: this is the pixel height/width in mm. Slice thickness
+        is not configurable.
+        o Bounding box: this crops the volume to the requested size
+            (NOT ENABLED IN PROTOTYPE)
+        o Assign label: this lets you manually assign whatever label you wish.
+    - When everything is set up, click "Run" to build your array from the
+    staged DICOM files.
+    - Click "Preview" to open a viewer, which will allow you to check to ensure
+    the arrays look how they should.
+    - Click "Save" to store the array file as an HDF5 file
+"""
+        tk.messagebox.showinfo(
+            "Help",
+            helpstr
+            )
         
     def build_arrays(self):
         """Function which builds the actual 4D array from the stored DCMFILES.
         """
+        pixel_size = float(self.px_size.get())
         ct_array = PatientCT(self.DCMFILES['CT'])
+        ct_array.rescale(pixel_size)
         dose_array = PatientDose(self.DCMFILES['RTDOSE'][0]) # TODO - support multi-file beam pass through
         dose_array.align_with(ct_array)
         mask_arrays = []
@@ -257,6 +303,10 @@ class PreprocessApp(tk.Tk):
         handler.attach(dose_array)
         handler.attach(mask_arrays)
         self.handler = handler
+        
+    def save_final(self):
+        dest = tkfd.asksaveasfilename(defaultextension=".h5")
+        self.handler.save(dest)
 
         
     def run(self):
@@ -281,6 +331,7 @@ class PreprocessApp(tk.Tk):
             self,text=self.labelfilestatus,bd=2,bg="#DFDAD9"
             )
         self.label_file_status_display.grid(row=1,column=6)
+        tk.Button(self,text="Help",command=self.help_func).grid(row=2,column=5,columnspan=2,pady=10)
         
         # === Row 2: Section break to file info table ===
         tk.Label(self,text="Files Staged").grid(row=2,column=1,columnspan=3,pady=5)
@@ -317,9 +368,9 @@ class PreprocessApp(tk.Tk):
         # populate options menu
         # row 1 - pixel size
         tk.Label(self.options_menu,text="Pixel size (mm):").grid(row=1,column=0)
-        px_size = tk.Entry(self.options_menu)
-        px_size.insert(0,"1.0")
-        px_size.grid(row=1,column=1)
+        self.px_size = tk.Entry(self.options_menu)
+        self.px_size.insert(0,"1.0")
+        self.px_size.grid(row=1,column=1)
         
         # row 2 - bounding box
         bounding_box_bool = tk.BooleanVar()
@@ -370,17 +421,20 @@ class PreprocessApp(tk.Tk):
                     
             # handle pixel size
             try:
-                pixel_size = float(px_size.get())
-                px_size.config(bg='white')
-                print("Pixel size valid: {}".format(px_size.get()))
+                pixel_size = float(self.px_size.get())
+                self.px_size.config(bg='white')
+                print("Pixel size valid: {}".format(self.px_size.get()))
             except:
-                px_size.delete(0, tk.END)
-                px_size.config(bg='red')
+                self.px_size.delete(0, tk.END)
+                self.px_size.config(bg='red')
                 good = False
             
             # handle label
             patient_label = app.label_entry.get()
             self.build_arrays()
+            self.preview_button.configure(state=tk.NORMAL)
+            self.save_button.configure(state=tk.NORMAL)
+            
                 
         run_button = tk.Button(
             self.options_menu,
@@ -389,6 +443,21 @@ class PreprocessApp(tk.Tk):
             )
         run_button.grid(row=4,column=1)
         # ======== END OF OPTIONS MENU ================= 
+        self.preview_button = tk.Button(
+            self,
+            text="Preview",
+            command=self.preview_popup
+            )
+        self.preview_button.grid(row=6,column=2)
+        self.preview_button.configure(state=tk.DISABLED)
+        
+        self.save_button = tk.Button(
+            self,
+            text='Save',
+            command=self.save_final
+            )
+        self.save_button.grid(row=7,column=2)
+        self.save_button.configure(state=tk.DISABLED)
         
         self.mainloop()
             

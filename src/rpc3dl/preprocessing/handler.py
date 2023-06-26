@@ -59,10 +59,7 @@ class Preprocessor:
     
     @property
     def mask(self):
-        if len(self._mask) == 1:
-            return self._mask[0]
-        else:
-            return self._mask
+       return self._mask
     
     @mask.setter
     def mask(self, value):
@@ -221,21 +218,29 @@ class Preprocessor:
              maskcentered=False,
              overwrite=True):
         
-        self.enforce_compat()
+        # disable enforce compatibility, will revisit later
+        # self.enforce_compat()
+        
         # package into 4D array
         if boxed is False:
-            data = [self.ct.array,self.dose.array,self.mask.array]
+            data = [self.ct.array,self.dose.array]
+            data += [mask.array for mask in self.mask]
         elif boxed is True:
             if maskcentered is True:
-                center = self.mask.com
+                center = None
+                # TODO - need to fix center of mass work for multiple masks
+                # center = self.mask.com
             else:
                 center = None
             data = [
                 self.ct.bounding_box(shape=boxshape,center=center),
-                self.dose.bounding_box(shape=boxshape,center=center),
-                self.mask.bounding_box(shape=boxshape,center=center)
+                self.dose.bounding_box(shape=boxshape,center=center)
+                ]
+            data += [
+                mask.bounding_box(shape=boxshape,center=center) for mask in self.mask
                 ]
         final_array = np.stack(data,axis=-1)
+        array_names = ['CT','DOSE'] + [mask.roi_name for mask in self.mask]
         
         with h5py.File(fname,"a") as file:
             if not self.augmented:
@@ -257,21 +262,23 @@ class Preprocessor:
                     'augment_{}'.format(new_ver), data=final_array
                     )
             file.attrs['label'] = int(self.label)
+            file.attrs['array_names'] = array_names
             if overwrite:
                 if 'pt_chars' in file.keys():
                     del file['pt_chars']
                 if 'surveys' in file.keys():
                     del file['surveys']
-                    
-            if 'pt_chars' not in file.keys():
-                file.create_dataset('pt_chars', data=self.pt_chars)
-            if 'surveys' not in file.keys():
-                file.create_group("surveys")
-                for time in ['acute','early','late']:
-                    if time in self.surveys.keys():
-                        file['surveys'].create_dataset(
-                            time,data=self.surveys[time]
-                            )
+            if hasattr(self,'pt_chars'):
+                if 'pt_chars' not in file.keys():
+                    file.create_dataset('pt_chars', data=self.pt_chars)
+            if hasattr(self,'surveys'):
+                if 'surveys' not in file.keys():
+                    file.create_group("surveys")
+                    for time in ['acute','early','late']:
+                        if time in self.surveys.keys():
+                            file['surveys'].create_dataset(
+                                time,data=self.surveys[time]
+                                )
             
                 
                 

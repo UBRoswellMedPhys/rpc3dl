@@ -8,8 +8,11 @@ Created on Tue Jun 13 02:04:13 2023
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as tkfd
+from PIL import Image, ImageTk
 
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from rpc3dl.preprocessing.nondicomclasses import Condition, CompositeCondition
 from rpc3dl.files._dicom_util import get_attr_deep, organize_list
@@ -249,3 +252,105 @@ class LabelFileProcess(tk.Toplevel):
             self.parent_app.labelfilestatus
         self.parent_app.calculate_label()
         self.destroy()
+        
+class VisualReview(tk.Toplevel):
+    def __init__(self,master,datahandler):
+        super().__init__(master)
+        self.handler = datahandler
+        tk.Label(self,text="Layer:").grid(row=0,column=0)
+        blankim = Image.new("RGB", (256,256), color="black")
+        blankim = ImageTk.PhotoImage(blankim)
+        self.display = tk.Label(self,image=blankim)
+        self.display.grid(row=1,column=1,columnspan=2,rowspan=3)
+        self.slice = tk.IntVar(self)
+        self.slice.set(0)
+        self.visible_layer = tk.StringVar(self)
+        self.visible_layer.trace('w', self.rerender)
+        self.visible_layer.set("CT")
+        masknames = [mask.roi_name for mask in datahandler._mask]
+        layer_options = ['CT','DOSE'] + masknames
+        tk.OptionMenu(
+            self,self.visible_layer,"-",*layer_options
+            ).grid(row=0,column=1)
+        self.slice_select_frame = tk.Frame(self)
+        self.slice_select_frame.grid(row=3,column=0)
+        tk.Label(
+            self.slice_select_frame,
+            text="Slice selector:"
+            ).grid(row=0,column=0,columnspan=3)
+        self.slice_entry = tk.Entry(self.slice_select_frame,width=10)
+        self.slice_entry.grid(row=1,column=1)
+        self.slice_entry.insert(0,"1")
+        tk.Button(
+            self.slice_select_frame,
+            text="+",
+            command=self.upslice
+            ).grid(row=1,column=2,padx=4)
+        tk.Button(
+            self.slice_select_frame,
+            text="-",
+            command=self.downslice
+            ).grid(row=1,column=0,padx=4)
+        
+    def upslice(self):
+        try:
+            oldval = int(self.slice_entry.get()) - 1
+        except:
+            oldval = self.slice.get()
+        newval = oldval + 1
+        self.slice.set(newval)
+        self.slice_entry.delete(0,tk.END)
+        self.slice_entry.insert(0,str(newval + 1))
+        self.rerender()
+    
+    def downslice(self):
+        try:
+            oldval = int(self.slice_entry.get()) - 1
+        except:
+            oldval = self.slice.get()
+        newval = oldval - 1
+        self.slice.set(newval)
+        self.slice_entry.delete(0,tk.END)
+        self.slice_entry.insert(0,str(newval + 1))
+        self.rerender()
+        
+        
+    
+    def rerender(self, *args):
+        retrieve_keys = {
+            'CT' : '_ct',
+            'DOSE' : '_dose'
+            }
+        called_layer = self.visible_layer.get()
+        
+        if called_layer == '-':
+            blankim = Image.new("RGB", (256,256), color="black")
+            blankim = ImageTk.PhotoImage(blankim)
+            self.display.configure(image=blankim)
+            self.display.image = blankim
+            return
+        
+        dataarray = np.zeros((256,256))
+        if called_layer in retrieve_keys.keys():
+            handlerattr = retrieve_keys[called_layer]
+            dataarray = getattr(self.handler,handlerattr).array
+        else:
+            for mask in self.handler._mask:
+                if called_layer == mask.roi_name:
+                    dataarray = mask.array
+                    break
+        dataarray = (dataarray - np.amin(dataarray)) / (np.amax(dataarray) - np.amin(dataarray))
+        i = self.slice.get()
+        image = dataarray[i]
+        
+        if called_layer == 'CT':
+            cmap = plt.cm.get_cmap('gray')
+            image = cmap(image)
+        elif called_layer == 'DOSE':
+            cmap = plt.cm.get_cmap('jet')
+            image = cmap(image)
+        self.array_for_reference = image
+        image = Image.fromarray((image * 255).astype(np.uint8))
+        image_tk = ImageTk.PhotoImage(image)
+        self.display.configure(image=image_tk)
+        self.display.image = image_tk
