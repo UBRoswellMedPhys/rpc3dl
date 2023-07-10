@@ -19,16 +19,16 @@ import build_model as models
 from _utils import process_surveys, window_level
 
 DATA_DIR = r"E:\alldata_anon"
-POS_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_positive.txt"
-NEG_SOURCE = r"D:\alldata_anon\early_sticky_saliva_nosurgery_negative.txt"
-CHECKPOINT_DIR = r"D:\model_checkpoints\early_sticky_saliva\RUN15"
+POS_SOURCE = r"D:\alldata_anon\early_max_gt_2.5_drymouth_pos.txt"
+NEG_SOURCE = r"D:\alldata_anon\early_max_gt_2.5_drymouth_neg.txt"
+CHECKPOINT_DIR = r"D:\model_checkpoints\early_dry_mouth\RUN2"
 
 TIME_WINDOW = 'early' # 480 patients
 
 # train patients = 290
 # test patients = 46
-TEST_PTS = 46
-BATCH_SIZE = 29
+TEST_PTS = 53
+BATCH_SIZE = 15
 
 PT_CHARS = True
 INCLUDE_AUGMENTS = False
@@ -41,14 +41,7 @@ IPSICONTRA_RECTIFY = True
 
 notes = """
 
-
-Rerun same as run 14 but slightly lowered the dropout
-
-Also added the ipsi/contra rectifying
-
-Kept everything the same, added normalization. Re-running with patient chars added
- - still need to revisit those and see about making the organization of them
-cleaner...some of them do not need to be OHE, such as tumor stage.
+New set of runs, now on Dry Mouth
 
 """
 
@@ -61,7 +54,7 @@ cleaner...some of them do not need to be OHE, such as tumor stage.
 # using survey process now. survey fields index:
     # 2 - dry mouth
     # 3 - sticky saliva
-lblidx = 3
+lblidx = 2
 
 
 # Build generator
@@ -81,7 +74,7 @@ def datagen(root,filelist,labeltype="early",with_chars=False,windowlevel=False,
                 X[...,0] = window_level(X[...,0],normalize=normalize)
             if normalize is True:
                 X[...,1] = X[...,1] / 70
-            Y = process_surveys(f,labeltype,'mean',scale4thresh=2.7)[lblidx]
+            Y = process_surveys(f,labeltype,'max',scale4thresh=2.7)[lblidx]
             if with_chars:
                 XX = f['pt_chars'][...]
         if with_chars:
@@ -103,18 +96,26 @@ def genwrapper(generator,batch_size=20):
 with open(POS_SOURCE,"r") as f:
     pos_files = f.read()
     pos_files = pos_files.split("\n")
+    if not pos_files[0].startswith("PT_DATA"):
+        pos_files = ["PT_DATA_{}.h5".format(i) for i in pos_files]
     
 with open(NEG_SOURCE,"r") as f:
     neg_files = f.read()
     neg_files = neg_files.split("\n")
+    if not neg_files[0].startswith("PT_DATA"):
+        neg_files = ["PT_DATA_{}.h5".format(i) for i in neg_files]
     
 random.seed(98) # prev was 42
 random.shuffle(pos_files)
 random.shuffle(neg_files)
 
 splitval = int(TEST_PTS/2)
-train_files = pos_files[splitval:] + neg_files[splitval:]
-test_files = pos_files[:splitval] + neg_files[:splitval]
+if TEST_PTS % 2 != 0:
+    extra = 1
+else:
+    extra = 0
+train_files = pos_files[splitval+extra:] + neg_files[splitval:]
+test_files = pos_files[:splitval+extra] + neg_files[:splitval]
 
 print("Number of training patients:",len(train_files))
 print("Number of test patients:", len(test_files))
@@ -170,7 +171,7 @@ for file in test_files:
         val_volumeX.append(X)
         val_charsX.append(f['pt_chars'][...])
         valY.append(
-            process_surveys(f,TIME_WINDOW,'mean',scale4thresh=2.7)[lblidx]
+            process_surveys(f,TIME_WINDOW,'max',scale4thresh=2.7)[lblidx]
             )
         
 val_volumeX = np.array(val_volumeX)
@@ -213,6 +214,8 @@ if not os.path.exists(CHECKPOINT_DIR):
 with open(os.path.join(CHECKPOINT_DIR,"notes.txt"),"w") as f:
     f.write(notes)
 
+print("Number of training patients:",len(gen_input))
+print("Number of validation patients:", len(valY))
 # Build model.
 with tf.device("/gpu:0"):
     model = models.single_resnet(
