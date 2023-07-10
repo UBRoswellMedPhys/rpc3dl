@@ -20,7 +20,7 @@ class InputGenerator:
         self.files = [file for file in os.listdir(root) if file.endswith('.h5')]
         self.time = time
         self.call_mode = 'train'
-        self.call_index = 0
+        self.call_index = -1
         self.batch_size = None # used to ensure even batches
         self.windowlevel = windowlevel
         self.normalize = normalize
@@ -160,6 +160,11 @@ class InputGenerator:
     
     def __call__(self):
         while True:
+            self.call_index += 1
+            if self.call_index >= self.train_ceiling:
+                self.call_index = 0
+                random.shuffle(self.train)
+            
             xvol, xnonvol, y = self.load_patient(self.train[self.call_index])
             if len(xnonvol) > 0:
                 X_ret = [xvol]
@@ -170,8 +175,5 @@ class InputGenerator:
                 X_ret = xvol
             yield X_ret, y
             
-            self.call_index += 1
-            if self.call_index >= self.train_ceiling:
-                self.call_index = 0
-                random.shuffle(self.train)
+            
                 
