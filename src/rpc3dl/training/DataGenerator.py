@@ -15,7 +15,7 @@ from _utils import window_level
 
 class InputGenerator:
     def __init__(self,root,time,windowlevel=(400,50),normalize=True,
-                 ipsicontra=True):
+                 ipsicontra=True, call_augments=True):
         self.root_dir = root
         self.files = [file for file in os.listdir(root) if file.endswith('.h5')]
         self.time = time
@@ -26,6 +26,7 @@ class InputGenerator:
         self.normalize = normalize
         self.ipsicontra = ipsicontra
         self.scout_files()
+        self.call_augments = call_augments
         
     def scout_files(self):
         # sorts files into their respective classes. useful for getting a val
@@ -84,10 +85,18 @@ class InputGenerator:
             break
         random.shuffle(self.train)
         
-    def load_patient(self,file):
+    def load_patient(self,file,consider_augments=False):
         Xnonvol = {}
         with h5py.File(os.path.join(self.root_dir,file),'r') as f:
-            Xvol = f['base'][...]
+            # clause for augment selection
+            if consider_augments is True:
+                if np.random.random() < 0.6:
+                    select = np.random.choice(['augment0','augment1','augment2']) #TODO - hardcoded this, naughty
+                    Xvol = f[select][...]
+                else:
+                    Xvol = f['base'][...]
+            else:
+                Xvol = f['base'][...]
             
             if self.ipsicontra:
                 midpoint = int(Xvol.shape[2]/2)
@@ -165,7 +174,9 @@ class InputGenerator:
                 self.call_index = 0
                 random.shuffle(self.train)
             
-            xvol, xnonvol, y = self.load_patient(self.train[self.call_index])
+            xvol, xnonvol, y = self.load_patient(
+                self.train[self.call_index],
+                consider_augments=self.call_augments)
             if len(xnonvol) > 0:
                 X_ret = [xvol]
                 for v in xnonvol.values():

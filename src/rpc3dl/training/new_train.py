@@ -26,7 +26,7 @@ DATA_DIR = r"E:\new_alldata"
 
 TIME_WINDOW = 'early'
 
-CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN4".format(TIME_WINDOW)
+CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN5".format(TIME_WINDOW)
 
 BATCH_SIZE = 20
 
@@ -48,14 +48,20 @@ PT_CHAR_SETTINGS = {
 
 notes = """
 
-Last run didn't really train - bad performance on test data
+Everything's set up now and we've added additional augmented volumes
+(flip, shift, rotate)
+
+Because flip is an augment, we're turning off the ipsi/contra rectify
+
+Everything else is the same as RUN4, still not adding patient chars - trying to
+solve overfitting first
 
 """
 # =============================
 
 # Prepare data
 
-gen = InputGenerator(DATA_DIR,time='early')
+gen = InputGenerator(DATA_DIR,time='early',call_augments=True,ipsicontra=False)
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
 gen.build_splits(42,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
