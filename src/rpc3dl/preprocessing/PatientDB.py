@@ -73,7 +73,8 @@ class Database:
                 self.db[col] = pd.to_datetime(
                     self.db[col], format=self.date_format,errors='coerce'
                     )
-                
+                self.type_map[col] = 'date'
+                continue
             # next we check for float
             try:
                 self.db[col] = self.db[col].astype(float)
