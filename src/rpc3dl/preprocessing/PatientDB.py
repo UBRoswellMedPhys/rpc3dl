@@ -58,7 +58,7 @@ class Database:
         self.id_col = id_col
         self.anchordate = anchordate
         self.db = df
-        self.date_formats = ['%m/%d/%Y', '%m/%d/%Y %H:%M']
+        self.date_format = '%m/%d/%Y'
         self.filters = filters
         #self.build_type_map()
         #self.clean_data()
@@ -70,21 +70,10 @@ class Database:
         for col in self.db.columns:
             # first, date check
             if 'date' in col.lower():
-                is_date = False
-                for form in self.date_formats:
-                    try:
-                        self.db[col] = pd.to_datetime(
-                            self._db[col], format=form
-                            )
-                        is_date = True
-                    except:
-                        continue # on to next date format
-                if is_date:
-                    self.type_map[col] = 'date'
-                else:
-                    self.type_map[col] = 'str'
-                    self.db[col] = self.db[col].astype(str)
-                continue # on to the next column
+                self.db[col] = pd.to_datetime(
+                    self.db[col], format=self.date_format,errors='coerce'
+                    )
+                
             # next we check for float
             try:
                 self.db[col] = self.db[col].astype(float)
