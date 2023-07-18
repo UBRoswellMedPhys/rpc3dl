@@ -90,7 +90,8 @@ class InputGenerator:
         with h5py.File(os.path.join(self.root_dir,file),'r') as f:
             # clause for augment selection
             if consider_augments is True:
-                if np.random.random() < 0.6:
+                # TODO - In future we may want to include ALL rather than randomly pull
+                if np.random.random() < 0.65:
                     select = np.random.choice(['augment0','augment1','augment2']) #TODO - hardcoded this, naughty
                     Xvol = f[select][...]
                 else:

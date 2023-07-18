@@ -26,7 +26,7 @@ DATA_DIR = r"E:\new_alldata"
 
 TIME_WINDOW = 'early'
 
-CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN5".format(TIME_WINDOW)
+CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN6".format(TIME_WINDOW)
 
 BATCH_SIZE = 20
 
@@ -56,16 +56,17 @@ Because flip is an augment, we're turning off the ipsi/contra rectify
 Everything else is the same as RUN4, still not adding patient chars - trying to
 solve overfitting first
 
+TEMPORARILY FLIPPED TEST AND VAL - Don't want this permanently though
+
 """
 # =============================
-
 # Prepare data
 
 gen = InputGenerator(DATA_DIR,time='early',call_augments=True,ipsicontra=False)
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
 gen.build_splits(42,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
-valX, valY = gen.load_all('val')
+valX, valY = gen.load_all('test')
 
 train_dataset = tf.data.Dataset.from_generator(
     gen,
@@ -74,11 +75,11 @@ train_dataset = tf.data.Dataset.from_generator(
 
 train_dataset = train_dataset.batch(BATCH_SIZE)
 
-
+# =============================
 # setup callbacks, model config
 checkpoint = keras.callbacks.ModelCheckpoint(
-    os.path.join(CHECKPOINT_DIR,"model.{epoch:02d}-{val_loss:.2f}.h5"),
-    monitor='val_auc',
+    os.path.join(CHECKPOINT_DIR,"model.{epoch:02d}-loss_{val_loss:.2f}-auc_{val_auc:.2f}.h5"),
+    monitor='val_loss',
     save_weights_only=False,
     save_best_only=True
     )
@@ -89,9 +90,9 @@ earlystopping = keras.callbacks.EarlyStopping(
     )
 
 def scheduler(epoch,lr):
-    if epoch < 10:
+    if epoch < 20:
         return 0.001
-    elif 10 < epoch < 30:
+    elif 20 < epoch < 40:
         return 0.0005
     else:
         return 0.00001
@@ -106,6 +107,7 @@ if not os.path.exists(CHECKPOINT_DIR):
 with open(os.path.join(CHECKPOINT_DIR,"notes.txt"),"w") as f:
     f.write(notes)
 
+# ============================
 # Build model.
 with tf.device("/gpu:0"):
     model = Resnet3DBuilder.build_resnet_34(
@@ -151,7 +153,7 @@ del valY
 with open(os.path.join(CHECKPOINT_DIR,"test_patients.txt"),"w") as f:
     f.write("\n".join(gen.test))
 
-testX, testY = gen.load_all('test')
+testX, testY = gen.load_all('val')
 preds = model.predict(testX)
 
 results = {
