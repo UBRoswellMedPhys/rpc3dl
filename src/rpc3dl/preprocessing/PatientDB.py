@@ -8,6 +8,25 @@ Created on Sat Jul 15 16:58:43 2023
 import pandas as pd
 import re
 
+def check_and_convert_float(column):
+    try:
+        # Try converting the column to float
+        converted_column = pd.to_numeric(column, errors='raise')
+        return converted_column
+    except (TypeError, ValueError):
+        initial_values = len(column.dropna())
+        # If an error occurs, handle the bad values
+        converted_column = pd.to_numeric(column, errors='coerce')
+        # Count the non-null values
+        non_null_count = converted_column.notnull().sum()
+        # Check if the majority of cells can be converted
+        if non_null_count >= initial_values / 2:
+            # Return the converted column with bad values replaced by NaN
+            return converted_column
+        else:
+            # Return the original column if the majority of cells cannot be converted
+            return None
+
 class Database:
     """Class for loading CSV file export from RedCap and processing it using
     a rules-based appraoch rather than prescribing hard-coded rules for each
@@ -76,12 +95,12 @@ class Database:
                 self.type_map[col] = 'date'
                 continue
             # next we check for float
-            try:
-                self.db[col] = self.db[col].astype(float)
+            check_col = check_and_convert_float(self.db[col])
+            # returns None if not a valid conversion
+            if check_col is not None:
+                self.db[col] = check_col
                 self.type_map[col] = 'float'
                 continue
-            except ValueError:
-                pass
             # if neither date nor float works, assume string
             self.db[col] = self.db[col].astype(str)
             self.type_map[col] = 'str'
@@ -128,14 +147,17 @@ class Database:
             subset = [
                 col for col in self.db.columns if col.strip().startswith(header)
                 ]
-            responses = self.db[subset].apply("|".join,axis=1)
+            subset = [
+                col for col in subset if col.split("(choice=")[0].strip()==header
+                ]
+            responses = self.db[subset].astype(str).apply("|".join,axis=1)
             responses = responses.str.strip("|") # drops leading/trailing |
             responses = responses.apply(
                 lambda x: re.sub(r'\|+', '|', x)
                 ) #replaces multiple inner | with a single |
             self.db[header] = responses
             self.db.drop(columns=subset,inplace=True)
-            
+
 if __name__ == '__main__':
     import sys
     db = pd.read_csv(sys.argv[1])
