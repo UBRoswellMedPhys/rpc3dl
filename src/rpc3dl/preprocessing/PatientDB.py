@@ -108,6 +108,13 @@ class Database:
     def clean_data(self):
         for k,v in self.filters.items():
             self.db = self.db[self.db[k].str.strip()==v]
+        self.db = self.db.set_index(self.id_col,drop=True)
+        #store essential info
+        for col in self.db.columns:
+            if "rt duration" in col.lower():
+                self.durations = self.db[col].dropna().to_dict()
+            if 'rt completion date' in col.lower():
+                self.completion_dates = self.db[col].dropna().to_dict()
         for col, t in self.type_map.items():
             if col == self.id_col:
                 continue
@@ -157,6 +164,24 @@ class Database:
                 ) #replaces multiple inner | with a single |
             self.db[header] = responses
             self.db.drop(columns=subset,inplace=True)
+            
+    def convert_surveys(self,surveys,id_field='MRN',
+                        time_field='eortc_qlqc30_35_timestamp',
+                        time_format='%m/%d/%Y %H:%M'):
+        surveys[time_field] = pd.to_datetime(
+            surveys[time_field], format=time_format,errors='coerce'
+            )
+        surveys.insert(1,'time_since_RT_end',None)
+        surveys.insert(1,'RT_duration',None)
+        surveys['RT_duration'] = surveys[id_field].apply(
+            lambda x: None if x not in self.durations.keys() else self.durations[x]
+            )
+        surveys['time_since_RT_end'] = surveys.apply(
+            lambda x: None if x[id_field] not in self.completion_dates.keys() else \
+                (x[time_field] - self.completion_dates[x[id_field]]).days
+            )
+        return surveys
+        
 
 if __name__ == '__main__':
     import sys

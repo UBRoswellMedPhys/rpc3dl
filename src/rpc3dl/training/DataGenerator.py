@@ -177,7 +177,8 @@ class InputGenerator:
             
             xvol, xnonvol, y = self.load_patient(
                 self.train[self.call_index],
-                consider_augments=self.call_augments)
+                consider_augments=self.call_augments
+                )
             if len(xnonvol) > 0:
                 X_ret = [xvol]
                 for v in xnonvol.values():

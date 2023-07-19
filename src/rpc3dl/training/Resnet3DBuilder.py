@@ -208,6 +208,11 @@ class Attach1DTo3D(Layer):
         # equals the ratio
         self.ratio = ratio
         super(Attach1DTo3D, self).__init__(**kwargs)
+        
+    def get_config(self):
+        config = super().get_config()
+        config.update({'ratio':self.ratio})
+        return config
 
     def build(self, input_shape):
         self.req_shape = input_shape[0][1:-1]

@@ -26,7 +26,7 @@ DATA_DIR = r"E:\new_alldata"
 
 TIME_WINDOW = 'early'
 
-CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN6".format(TIME_WINDOW)
+CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN7".format(TIME_WINDOW)
 
 BATCH_SIZE = 20
 
@@ -38,7 +38,7 @@ PT_CHAR_SETTINGS = {
     'm_stage': False,
     'n_stage': False,
     'race': False,
-    'smoking': False,
+    'smoking': True,
     't_stage': False,
     'treatment_type': False
     }
@@ -48,15 +48,7 @@ PT_CHAR_SETTINGS = {
 
 notes = """
 
-Everything's set up now and we've added additional augmented volumes
-(flip, shift, rotate)
-
-Because flip is an augment, we're turning off the ipsi/contra rectify
-
-Everything else is the same as RUN4, still not adding patient chars - trying to
-solve overfitting first
-
-TEMPORARILY FLIPPED TEST AND VAL - Don't want this permanently though
+Trying out adding smoking status, and changed seed
 
 """
 # =============================
@@ -64,9 +56,9 @@ TEMPORARILY FLIPPED TEST AND VAL - Don't want this permanently though
 
 gen = InputGenerator(DATA_DIR,time='early',call_augments=True,ipsicontra=False)
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
-gen.build_splits(42,val=0.1,test=0.1)
+gen.build_splits(98,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
-valX, valY = gen.load_all('test')
+valX, valY = gen.load_all('val')
 
 train_dataset = tf.data.Dataset.from_generator(
     gen,
@@ -113,7 +105,7 @@ with tf.device("/gpu:0"):
     model = Resnet3DBuilder.build_resnet_34(
         (40,128,128,3),
         num_outputs=1,
-        fusions={},
+        fusions={2:3},
         basefilters=32
         )
     optim = keras.optimizers.Adam(learning_rate=0.001)
@@ -132,7 +124,7 @@ with tf.device("/gpu:0"):
         train_dataset,
         validation_data=(valX, valY),
         # batch_size=12,
-        steps_per_epoch= len(gen.train) // BATCH_SIZE,
+        steps_per_epoch=(len(gen.train) // BATCH_SIZE),
         epochs=200,
         verbose=1,
         callbacks=[checkpoint, earlystopping, lrschedule],
@@ -153,7 +145,7 @@ del valY
 with open(os.path.join(CHECKPOINT_DIR,"test_patients.txt"),"w") as f:
     f.write("\n".join(gen.test))
 
-testX, testY = gen.load_all('val')
+testX, testY = gen.load_all('test')
 preds = model.predict(testX)
 
 results = {
