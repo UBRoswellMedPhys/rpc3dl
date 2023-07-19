@@ -178,7 +178,8 @@ class Database:
             )
         surveys['time_since_RT_end'] = surveys.apply(
             lambda x: None if x[id_field] not in self.completion_dates.keys() else \
-                (x[time_field] - self.completion_dates[x[id_field]]).days
+                (x[time_field] - self.completion_dates[x[id_field]]).days,
+            axis=1
             )
         return surveys
         
