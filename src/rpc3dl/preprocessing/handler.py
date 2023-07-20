@@ -275,7 +275,7 @@ class Preprocessor:
                     del file['surveys']
             if hasattr(self,'pt_chars'):
                 if 'pt_chars' not in file.keys():
-                    file.create_dataset('pt_chars', data=self.pt_chars)
+                    file.create_dataset('pt_chars', data=self.pt_chars.astype('S'))
                     file['pt_chars']
             if hasattr(self,'surveys'):
                 if 'surveys' not in file.keys():
