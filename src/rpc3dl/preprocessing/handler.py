@@ -8,6 +8,7 @@ Created on Mon Apr 17 23:04:52 2023
 import random
 import numpy as np
 import h5py
+import scipy
 
 import rpc3dl.preprocessing.arrayclasses as arrayclass
 
@@ -240,17 +241,32 @@ class Preprocessor:
             mask_arrays = [
                 mask.bounding_box(shape=boxshape,center=center) for mask in self.mask
                 ]
-        mask_names = [mask.roi_name for mask in self.mask]
+        mask_names = [
+            mask.proper_name if mask.proper_name is not None \
+                else mask.roi_name for mask in self.mask
+                ]
         
         with h5py.File(fname,"a") as file:
             file.create_dataset('ct',data=data[0])
             file.create_dataset('dose',data=data[1])
             for mask,name in zip(mask_arrays,mask_names):
                 file.create_group(name)
+                # represent mask in sparse format
+                row = np.array([])
+                col = np.array([])
+                slic = np.array([])
+                for i in range(mask.shape[0]):
+                    sp = scipy.sparse.coo_matrix(mask[i,...])
+                    sl = np.full(sp.data.shape,fill_value=i,dtype=np.int32)
+                    slic = np.concatenate([slic,sl])
+                    col = np.concatenate([col,sp.col])
+                    row = np.concatenate([row,sp.row])    
+                # note that 'data' is skipped - we know it is all 1s for mask
+                file[name].create_dataset('rows',data=row)
+                file[name].create_dataset('cols',data=col)
+                file[name].create_dataset('slices',data=slic)
             
-            
-            file.attrs['label'] = int(self.label)
-            file.attrs['array_names'] = array_names
+            # file.attrs['label'] = int(self.label) <-- not doing labels now
             if overwrite:
                 if 'pt_chars' in file.keys():
                     del file['pt_chars']
