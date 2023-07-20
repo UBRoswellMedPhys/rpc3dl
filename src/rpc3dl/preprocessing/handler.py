@@ -105,6 +105,7 @@ class Preprocessor:
             
     def populate_surveys(self,binned_survey_df):
         surveys = binned_survey_df
+        surveys['mrn'] = surveys['mrn'].fillna(0)
         surveys['mrn'] = surveys['mrn'].astype(int).astype(str)
         for col in surveys.columns:
             if any(('date' in col.lower(),'timestamp' in col.lower())):

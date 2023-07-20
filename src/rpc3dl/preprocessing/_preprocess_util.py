@@ -82,21 +82,13 @@ def find_parotid_info(ss,side):
                 continue
             if any((side in elem for elem in strippedname)):
                 return roi.ROIName, roi.ROINumber
-    return None
+    return None, None
 
 def find_PTV_info(ss):
-    options = []
     for roi in ss.StructureSetROISequence:
         name = roi.ROIName.lower()
-        if 'ptv' in name:
-            options.append((roi.ROIName,roi.ROINumber))
-    if len(options) == 1:
-        return options[0]
-    else:
-        # if multiple, use specific search
-        for op in options:
-            if op[0] == '70 PTV':
-                return op
+        if '70 ptv' in name:
+            return roi.ROIName, roi.ROINumber
         return (None, None)
 
 def merge_doses(*args):
