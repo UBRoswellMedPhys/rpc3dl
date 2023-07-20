@@ -438,7 +438,7 @@ class PatientDose(PatientArray):
             self.even_spacing = False
         
 class PatientMask(PatientArray):
-    def __init__(self,reference,ssfile,roi):
+    def __init__(self,reference,ssfile,roi,proper_name=None):
         """
         Creates a mask array that is imprinted off of a reference array.
         
@@ -464,6 +464,7 @@ class PatientMask(PatientArray):
         self._position = reference.position
         self.slice_ref = reference.slice_ref
         self.even_spacing = reference.even_spacing
+        self.proper_name = proper_name
         
         self.array = np.zeros_like(reference.array)
         for roi_info in ssfile.StructureSetROISequence:

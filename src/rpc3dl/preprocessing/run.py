@@ -9,7 +9,7 @@ import argparse
 
 from rpc3dl.preprocessing.handler import Preprocessor
 import rpc3dl.preprocessing.arrayclasses as arrayclass
-from rpc3dl.preprocessing._preprocess_util import find_parotid_info
+from rpc3dl.preprocessing._preprocess_util import find_parotid_info, find_PTV_info
 
 import os
 import shutil
@@ -69,6 +69,7 @@ def main():
         help='Desired pixel size of the eventual arrays')
     parser.add_argument('-pl', '--parotid_l', action='store_true')
     parser.add_argument('-pr', '--parotid_r', action='store_true')
+    parser.add_argument('-tu', '--ptv', action='store_true')
     parser.add_argument(
         '-bb',
         '--bounding_box_size',
@@ -85,13 +86,7 @@ def main():
         default=False,
         help='Center bounding box on organ mask center-of-mass'
         )
-    parser.add_argument(
-        '-a',
-        '--augments',
-        type=int,
-        default=0,
-        help='Sets the number of data augments to also generate'
-        )
+
     parser.add_argument(
         '-l','--label',type=str,default=None,help="Path to label file."
         )
@@ -166,21 +161,33 @@ def main():
     
     # I don't love how the ROIs are passed yet, it's too parotid-specific
     # I will need to rewrite it before it can be used for pharyngeal
-    mask_arr = None
+    rois_to_build = []
+    roi_proper_name = []
     if args.parotid_r:
         roi_name, roi_num = find_parotid_info(ss,"r")
-        temp = arrayclass.PatientMask(ct_arr, ss, roi_name)
-        mask_arr = temp
+        rois_to_build.append(roi_name)
+        roi_proper_name.append("parotid_r")
+        # temp = arrayclass.PatientMask(ct_arr, ss, roi_name)
+        # mask_arr = temp
     if args.parotid_l:
         roi_name, roi_num = find_parotid_info(ss, "l")
-        temp = arrayclass.PatientMask(ct_arr, ss, roi_name)
-        if mask_arr is None:
-            mask_arr = temp
-        else:
-            mask_arr.join(temp)
+        rois_to_build.append(roi_name)
+        roi_proper_name.append("parotid_l")
+    if args.ptv:
+        roi_name, roi_num = find_PTV_info(ss)
+        rois_to_build.append(roi_name)
+        roi_proper_name.append('ptv')
+    masks = []
+    for roi_name, proper_name in zip(rois_to_build,roi_proper_name):
+        temp = arrayclass.PatientMask(
+            ct_arr, ss, roi_name, proper_name=proper_name
+            )
+        masks.append(temp)
             
     prepper = Preprocessor(patient_id=args.patient_id)
-    prepper.attach([ct_arr, dose_arr, mask_arr])
+    prepper.attach([ct_arr, dose_arr])
+    if len(masks) > 0:
+        prepper.attach(masks)
     
     print("PatientID of preprocessor:",prepper.patient_id)
     if args.label is not None:
@@ -204,16 +211,6 @@ def main():
         maskcentered=args.center_of_mass
         )
     
-    if args.augments > 0:
-        for i in range(args.augments):
-            prepper.random_augment()
-            prepper.save(
-                args.destination,
-                boxed=boxed,
-                boxshape=boxsize,
-                maskcentered=args.center_of_mass
-                )
-            prepper.reset_augments()
     
     if args.remove_files:
         shutil.rmtree(args.input_directory)

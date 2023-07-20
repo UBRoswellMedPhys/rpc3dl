@@ -105,23 +105,17 @@ class Preprocessor:
     def populate_surveys(self,binned_survey_df):
         surveys = binned_survey_df
         surveys['mrn'] = surveys['mrn'].astype(int).astype(str)
-        fields = surveys.columns[2:]
-        
+        for col in surveys.columns:
+            if any(('date' in col.lower(),'timestamp' in col.lower())):
+                surveys = surveys.drop(columns=[col])        
         
         subset = surveys[surveys['mrn']==self.patient_id]
         if len(subset) == 0:
             # kill process if no surveys match
             return None
-        
-        self.surveys = {}
-        #f.create_group("surveys")
-        self.survey_fields = np.array(fields).astype('S')
-        for time in ['acute','early','late']:
-            subsubset = subset[subset['bin']==time]
-            if len(subsubset)==0:
-                continue
-            survey_array = subsubset.iloc[:,2:].to_numpy()
-            self.surveys[time] = survey_array
+        subset = subset.drop(columns=['mrn'])
+        self.surveys = subset.to_numpy()
+        self.survey_fields = subset.columns
         
     def get_pt_chars(self,pc_file):
         if self.patient_id is None:
@@ -129,6 +123,7 @@ class Preprocessor:
         pc_file.index = pc_file.index.astype(str)
         if str(self.patient_id) in pc_file.index:
             self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
+            self.pt_char_fields = pc_file.columns
             
     def erase(self,mode):
         if mode.lower() == "ct":
@@ -224,43 +219,36 @@ class Preprocessor:
         # package into 4D array
         if boxed is False:
             data = [self.ct.array,self.dose.array]
-            data += [mask.array for mask in self.mask]
+            mask_arrays = [mask.array for mask in self.mask]
         elif boxed is True:
             if maskcentered is True:
-                center = None
-                # TODO - need to fix center of mass work for multiple masks
-                # center = self.mask.com
+                if len(self.mask) == 1:
+                    center = self.mask[0].com
+                elif len(self.mask) > 1:
+                    combined = self.mask[0].array
+                    for i in range(1,len(self.mask)):
+                        combined += self.mask[i].array
+                    combined[combined > 1] = 1
+                    livecoords = np.argwhere(combined)
+                    center = np.sum(livecoords,axis=0) / len(livecoords)
             else:
                 center = None
             data = [
                 self.ct.bounding_box(shape=boxshape,center=center),
                 self.dose.bounding_box(shape=boxshape,center=center)
                 ]
-            data += [
+            mask_arrays = [
                 mask.bounding_box(shape=boxshape,center=center) for mask in self.mask
                 ]
-        final_array = np.stack(data,axis=-1)
-        array_names = ['CT','DOSE'] + [mask.roi_name for mask in self.mask]
+        mask_names = [mask.roi_name for mask in self.mask]
         
         with h5py.File(fname,"a") as file:
-            if not self.augmented:
-                file.create_dataset('base',data=final_array)
-            else:
-                ds_keys = get_dataset_keys(file)
-                if 'base' in ds_keys:
-                    ds_keys.remove('base')
-                if 'pt_chars' in ds_keys:
-                    ds_keys.remove('pt_chars')
-                if 'surveys' in ds_keys:
-                    ds_keys.remove('surveys')
-                if len(ds_keys) == 0:
-                    new_ver = 1
-                else:
-                    versions = [int(key.split("_")[-1]) for key in ds_keys]
-                    new_ver = np.amax(versions) + 1
-                file.create_dataset(
-                    'augment_{}'.format(new_ver), data=final_array
-                    )
+            file.create_dataset('ct',data=data[0])
+            file.create_dataset('dose',data=data[1])
+            for mask,name in zip(mask_arrays,mask_names):
+                file.create_group(name)
+            
+            
             file.attrs['label'] = int(self.label)
             file.attrs['array_names'] = array_names
             if overwrite:
@@ -271,14 +259,12 @@ class Preprocessor:
             if hasattr(self,'pt_chars'):
                 if 'pt_chars' not in file.keys():
                     file.create_dataset('pt_chars', data=self.pt_chars)
+                    file['pt_chars']
             if hasattr(self,'surveys'):
                 if 'surveys' not in file.keys():
-                    file.create_group("surveys")
-                    for time in ['acute','early','late']:
-                        if time in self.surveys.keys():
-                            file['surveys'].create_dataset(
-                                time,data=self.surveys[time]
-                                )
+                    file.create_group("surveys",data=self.surveys)
+                    file['surveys'].attrs['fields'] = self.survey_fields
+                    
             
                 
                 

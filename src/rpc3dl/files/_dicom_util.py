@@ -33,6 +33,21 @@ def find_parotid_info(ss,side):
                 return roi.ROIName, roi.ROINumber
     return None
 
+def find_PTV_info(ss):
+    options = []
+    for roi in ss.StructureSetROISequence:
+        name = roi.ROIName.lower()
+        if 'ptv' in name:
+            options.append((roi.ROIName,roi.ROINumber))
+    if len(options) == 1:
+        return options[0]
+    else:
+        # if multiple, use specific search
+        for op in options:
+            if op[0] == '70 PTV':
+                return op
+        return (None, None)
+
 def is_dicom_file(filename):
     with open(filename, 'rb') as f:
         header = f.read(4)
