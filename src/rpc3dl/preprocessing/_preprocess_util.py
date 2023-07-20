@@ -85,11 +85,17 @@ def find_parotid_info(ss,side):
     return None, None
 
 def find_PTV_info(ss):
+    store = ("", None)
     for roi in ss.StructureSetROISequence:
         name = roi.ROIName.lower()
-        if '70 ptv' in name:
-            return roi.ROIName, roi.ROINumber
-        return (None, None)
+        if 'ptv' in name:
+            if '70' in name:
+                return roi.ROIName, roi.ROINumber
+            else:
+                store = (roi.ROIName, roi.ROINumber)
+    if '56' in store[0]:
+        return store
+    return (None, None)
 
 def merge_doses(*args):
     shape = None
