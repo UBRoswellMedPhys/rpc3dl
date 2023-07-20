@@ -15,13 +15,17 @@ src/rpc3dl/files/__init__.py
 src/rpc3dl/files/_dicom_util.py
 src/rpc3dl/files/dicom_filter.py
 src/rpc3dl/files/migrate_cli.py
+src/rpc3dl/preprocessing/PatientDB.py
 src/rpc3dl/preprocessing/__init__.py
 src/rpc3dl/preprocessing/_preprocess_util.py
 src/rpc3dl/preprocessing/arrayclasses.py
+src/rpc3dl/preprocessing/data_augmentation.py
 src/rpc3dl/preprocessing/generate_labels.py
 src/rpc3dl/preprocessing/handler.py
 src/rpc3dl/preprocessing/nondicomclasses.py
 src/rpc3dl/preprocessing/run.py
+src/rpc3dl/training/DataGenerator.py
+src/rpc3dl/training/Resnet3DBuilder.py
 src/rpc3dl/training/__init__.py
 src/rpc3dl/training/_utils.py
 src/rpc3dl/training/build_model.py
@@ -31,4 +35,5 @@ src/rpc3dl/training/hack_it.py
 src/rpc3dl/training/legacy_main.py
 src/rpc3dl/training/legacy_models.py
 src/rpc3dl/training/main.py
+src/rpc3dl/training/new_train.py
 src/rpc3dl/training/train.py
