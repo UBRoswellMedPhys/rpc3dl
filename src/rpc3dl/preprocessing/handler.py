@@ -123,6 +123,8 @@ class Preprocessor:
         if self.patient_id is None:
             raise Exception("Cannot fetch pt_chars without patient ID")
         pc_file.index = pc_file.index.astype(str)
+        if "Date of Diagnosis" in pc_file:
+            pc_file = pc_file.drop(column=['Date of Diagnosis'])
         if str(self.patient_id) in pc_file.index:
             self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
             self.pt_char_fields = pc_file.columns
@@ -279,7 +281,7 @@ class Preprocessor:
                     file['pt_chars']
             if hasattr(self,'surveys'):
                 if 'surveys' not in file.keys():
-                    file.create_group("surveys",data=self.surveys)
+                    file.create_dataset("surveys",data=self.surveys.astype('S'))
                     file['surveys'].attrs['fields'] = self.survey_fields
                     
             
