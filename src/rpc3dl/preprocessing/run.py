@@ -165,18 +165,24 @@ def main():
     roi_proper_name = []
     if args.parotid_r:
         roi_name, roi_num = find_parotid_info(ss,"r")
-        rois_to_build.append(roi_name)
-        roi_proper_name.append("parotid_r")
+        print("Looking for parotid r - found:",roi_name, roi_num)
+        if roi_num is not None:
+            rois_to_build.append(roi_name)
+            roi_proper_name.append("parotid_r")
         # temp = arrayclass.PatientMask(ct_arr, ss, roi_name)
         # mask_arr = temp
     if args.parotid_l:
         roi_name, roi_num = find_parotid_info(ss, "l")
-        rois_to_build.append(roi_name)
-        roi_proper_name.append("parotid_l")
+        print("Looking for parotid l - found:",roi_name, roi_num)
+        if roi_num is not None:
+            rois_to_build.append(roi_name)
+            roi_proper_name.append("parotid_l")
     if args.ptv:
         roi_name, roi_num = find_PTV_info(ss)
-        rois_to_build.append(roi_name)
-        roi_proper_name.append('ptv')
+        print("Looking for PTV - found:",roi_name, roi_num)
+        if roi_num is not None:
+            rois_to_build.append(roi_name)
+            roi_proper_name.append('ptv')
     masks = []
     for roi_name, proper_name in zip(rois_to_build,roi_proper_name):
         temp = arrayclass.PatientMask(
