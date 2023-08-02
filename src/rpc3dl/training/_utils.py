@@ -11,6 +11,7 @@ import numpy as np
 import math
 
 from scipy.ndimage.interpolation import rotate, shift, zoom
+from scipy.sparse import coo_matrix
 
 def batcher(generator,batch_size,num_inputs=3):
     """
@@ -822,6 +823,29 @@ def process_surveys(file, time='all',mode='mean',scale10thresh=5,scale4thresh=3)
     merged = np.concatenate([ovr,regular],axis=0)
     return merged
 
+def get_unique_values(df,delimiter=None):
+    uniques = {}
+    for col in df.columns:
+        uniqs = list(df[col].unique())
+        if delimiter is None:
+            uniques[col] = uniqs
+        else:
+            uniques[col] = []
+            for v in uniqs:
+                uniques[col] += v.split(delimiter)
+            uniques[col] = list(set(uniques[col]))
+    return uniques
+
+def rebuild_mask(f,key):
+    dense = np.zeros_like(f['ct'][...])
+    slices = f[key]['slices'][...]
+    slice_nums = np.unique(slices).astype(int)
+    for sl in slice_nums:
+        rows = f[key]['rows'][np.where(slices==sl)]
+        cols = f[key]['cols'][np.where(slices==sl)]
+        sparse = coo_matrix((np.ones_like(cols),(rows,cols)),shape=f['ct'][...].shape[1:],dtype=int)
+        dense[sl,...] = sparse.todense()
+    return dense
 
 if __name__ == '__main__':
     # for i in [1,2,3,4]:

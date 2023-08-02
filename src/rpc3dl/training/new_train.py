@@ -18,10 +18,10 @@ from tensorflow.keras import layers
 
 import build_model as models
 from _utils import process_surveys, window_level
-from DataGenerator import InputGenerator
+from DataGenerator import InputGenerator_v2
 from Resnet3DBuilder import Resnet3DBuilder
 
-DATA_DIR = r"E:\new_alldata"
+DATA_DIR = r"E:\newdata"
 
 
 TIME_WINDOW = 'early'
@@ -54,7 +54,7 @@ Trying out adding smoking status, and changed seed
 # =============================
 # Prepare data
 
-gen = InputGenerator(DATA_DIR,time='early',call_augments=True,ipsicontra=False)
+gen = InputGenerator_v2(DATA_DIR,time='early',ipsicontra=False)
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
 gen.build_splits(98,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE

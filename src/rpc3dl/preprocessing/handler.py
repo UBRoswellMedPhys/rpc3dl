@@ -124,7 +124,7 @@ class Preprocessor:
             raise Exception("Cannot fetch pt_chars without patient ID")
         pc_file.index = pc_file.index.astype(str)
         if "Date of Diagnosis" in pc_file:
-            pc_file = pc_file.drop(column=['Date of Diagnosis'])
+            pc_file = pc_file.drop(columns=['Date of Diagnosis'])
         if str(self.patient_id) in pc_file.index:
             self.pt_chars = pc_file.loc[str(self.patient_id)].to_numpy()
             self.pt_char_fields = pc_file.columns
@@ -278,11 +278,11 @@ class Preprocessor:
             if hasattr(self,'pt_chars'):
                 if 'pt_chars' not in file.keys():
                     file.create_dataset('pt_chars', data=self.pt_chars.astype('S'))
-                    file['pt_chars']
+                    file['pt_chars'].attrs['fields'] = np.array(self.pt_char_fields,dtype='S')
             if hasattr(self,'surveys'):
                 if 'surveys' not in file.keys():
                     file.create_dataset("surveys",data=self.surveys.astype('S'))
-                    file['surveys'].attrs['fields'] = self.survey_fields
+                    file['surveys'].attrs['fields'] = np.array(self.survey_fields,dtype='S')
                     
             
                 

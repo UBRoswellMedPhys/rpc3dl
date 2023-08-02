@@ -79,6 +79,12 @@ class Database:
         self.db = df
         self.date_format = '%m/%d/%Y'
         self.filters = filters
+        self.fields_to_delete = [
+            "TPN In",
+            "TPN Out",
+            "Details of third or more admissions:",
+            "Other Induction Chemotherapy Frequency"
+            ]
         #self.build_type_map()
         #self.clean_data()
         # all this prep can be done up front - handling grouped fields will
@@ -130,8 +136,14 @@ class Database:
                 num_uniq = self.db[col].nunique()
                 total_entries = self.db[col].count()
                 if (num_uniq > 10) and ((num_uniq / total_entries) > 0.01):
+                    if 'stage' in col.lower():
+                        continue
                     print("Dropping {}".format(col))
                     self.db.drop(columns=col,inplace=True)
+                elif col in self.fields_to_delete:
+                    print("Dropping {}".format(col))
+                    self.db.drop(columns=col,inplace=True)
+                
             if 'age' in col.lower() and self.type_map[col] == 'float':
                 self.db[col] = self.db[col].apply(
                     lambda x: x if x < 90.0 else 90.0
@@ -187,7 +199,7 @@ class Database:
 if __name__ == '__main__':
     import sys
     db = pd.read_csv(sys.argv[1])
-    test = Database(db,id_col='ANON_ID')
+    test = Database(db)
     test.build_type_map()
     test.clean_data()
     test.handle_grouped_fields()

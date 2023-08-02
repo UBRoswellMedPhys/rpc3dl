@@ -329,6 +329,18 @@ class Resnet3DBuilder(object):
 
         model = Model(inputs=inputs, outputs=dense)
         return model
+    
+    """
+    Note on "fusions" argument
+    
+    It is expected to be a dictionary where the keys are either an integer,
+    which represents the Res-block before which to insert the nonvolume data,
+    or "late" which inserts the data after tensor has been global pooled.
+    
+    Values in the dict should be the length of the expected input tensor.
+    Note that this does allow you to insert different data at multiple entry
+    points.
+    """
 
     @staticmethod
     def build_resnet_18(input_shape, num_outputs, reg_factor=1e-4, fusions={},
