@@ -136,7 +136,7 @@ class Database:
                 num_uniq = self.db[col].nunique()
                 total_entries = self.db[col].count()
                 if (num_uniq > 10) and ((num_uniq / total_entries) > 0.01):
-                    if 'stage' in col.lower():
+                    if any(('stage' in col.lower(),col.strip()=='Treatment Type')):
                         continue
                     print("Dropping {}".format(col))
                     self.db.drop(columns=col,inplace=True)
