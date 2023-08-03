@@ -26,21 +26,18 @@ DATA_DIR = r"E:\newdata"
 
 TIME_WINDOW = 'early'
 
-CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN7".format(TIME_WINDOW)
+CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN10".format(TIME_WINDOW)
 
 BATCH_SIZE = 20
 
 PT_CHAR_SETTINGS = {
-    'age': False,
-    'disease_site': False,
-    'gender': False,
-    'hpv': False,
-    'm_stage': False,
-    'n_stage': False,
-    'race': False,
-    'smoking': True,
-    't_stage': False,
-    'treatment_type': False
+    'Treatment Type ' : True,
+    'Age at Diagnosis ' : True,
+    'Gender' : True,
+    'T Stage Clinical ' : True,
+    'N stage' : True,
+    'HPV status' : True,
+    'Disease Site' : True
     }
 
 # =============================
@@ -55,6 +52,7 @@ Trying out adding smoking status, and changed seed
 # Prepare data
 
 gen = InputGenerator_v2(DATA_DIR,time='early',ipsicontra=False)
+gen.build_encoders()
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
 gen.build_splits(98,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
@@ -105,7 +103,7 @@ with tf.device("/gpu:0"):
     model = Resnet3DBuilder.build_resnet_34(
         (40,128,128,3),
         num_outputs=1,
-        fusions={2:3},
+        fusions={'late':gen.pt_char_len},
         basefilters=32
         )
     optim = keras.optimizers.Adam(learning_rate=0.001)

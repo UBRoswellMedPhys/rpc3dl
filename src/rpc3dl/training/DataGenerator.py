@@ -303,6 +303,7 @@ class InputGenerator_v2:
                     )
             self.encoders[field].fit(fit_to)
     
+    @property
     def pt_char_len(self):
         length = 0
         for field in self.pt_char_settings.keys():
@@ -314,7 +315,7 @@ class InputGenerator_v2:
         return length
     
     def __len__(self):
-        return len(self.files) - len(self.invalid)
+        return len(self.files) - len(getattr(self,self.time)['invalid'])
     
     @property
     def train_ceiling(self):
@@ -353,7 +354,7 @@ class InputGenerator_v2:
             break
         random.shuffle(self.train)
         
-    def load_patient(self,file,consider_augments=False):
+    def load_patient(self,file):
         with h5py.File(os.path.join(self.root_dir,file),'r') as f:
             # first we assemble the volumetric data
             ct = f['ct'][...]
@@ -425,31 +426,27 @@ class InputGenerator_v2:
                 Y = 0
             else:
                 raise ValueError("Patient does not have valid label")
-        return Xvol, Xnonvol, Y
+        return Xvol, np.squeeze(Xnonvol), Y
     
     def load_all(self,which):
         filelist = getattr(self,which)
         Xvol = []
-        Xnonvol = {k:[] for k,v in self.pt_char_settings.items() if v is True}
+        Xnonvol = []
         Y = []
         for file in filelist:
             xvol, xnonvol, y = self.load_patient(file)
             Xvol.append(xvol)
-            for field in Xnonvol.keys():
-                Xnonvol[field].append(xnonvol[field])
+            Xnonvol.append(xnonvol)
             Y.append(y)
         if len(Xnonvol) > 0:
-            X_ret = [np.array(Xvol)]
-            for charlist in Xnonvol.values():
-                X_ret.append(np.array(charlist))
-            X_ret = tuple(X_ret)
+            X_ret = (np.array(Xvol),np.array(Xnonvol))
         else:
             X_ret = np.array(Xvol)
         return X_ret, np.array(Y)
     
     def output_sig(self):
         basesig = tf.TensorSpec((40,128,128,3),dtype=tf.float32)
-        support_length = self.pt_char_len()
+        support_length = self.pt_char_len
         if support_length > 0:
             supportsig = tf.TensorSpec((support_length,),dtype=tf.float32)
         else:
@@ -467,8 +464,7 @@ class InputGenerator_v2:
                 random.shuffle(self.train)
             
             xvol, xnonvol, y = self.load_patient(
-                self.train[self.call_index],
-                consider_augments=self.call_augments
+                self.train[self.call_index]
                 )
             if xnonvol is not None:
                 X_ret = (xvol,xnonvol)
@@ -478,5 +474,5 @@ class InputGenerator_v2:
             
             
 if __name__ == "__main__":
-    test = InputGenerator_v2(r"D:\newdata","early")
+    test = InputGenerator_v2(r"E:\newdata","early")
     test.build_encoders()
