@@ -4,7 +4,7 @@ Created on Tue May 16 23:54:31 2023
 
 @author: johna
 """
-
+print("Beginning imports...")
 import os
 import random
 import tensorflow as tf
@@ -20,6 +20,7 @@ import build_model as models
 from _utils import process_surveys, window_level
 from DataGenerator import InputGenerator_v2
 from Resnet3DBuilder import Resnet3DBuilder
+print("Imports complete...")
 
 DATA_DIR = r"E:\newdata"
 
@@ -36,8 +37,7 @@ PT_CHAR_SETTINGS = {
     'Gender' : True,
     'T Stage Clinical ' : True,
     'N stage' : True,
-    'HPV status' : True,
-    'Disease Site' : True
+    'HPV status' : True
     }
 
 # =============================
@@ -50,12 +50,13 @@ Trying out adding smoking status, and changed seed
 """
 # =============================
 # Prepare data
-
+print("Starting data prep...")
 gen = InputGenerator_v2(DATA_DIR,time='early',ipsicontra=False)
 gen.build_encoders()
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
 gen.build_splits(98,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
+print("Loading validation data...")
 valX, valY = gen.load_all('val')
 
 train_dataset = tf.data.Dataset.from_generator(

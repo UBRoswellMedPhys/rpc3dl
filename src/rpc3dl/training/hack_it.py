@@ -18,7 +18,7 @@ from tensorflow.keras import layers
 import build_model as models
 from _utils import process_surveys, window_level
 
-DATA_DIR = r"E:\alldata_anon"
+DATA_DIR = r"E:\newdata"
 POS_SOURCE = r"D:\alldata_anon\early_max_gt_2.5_drymouth_pos.txt"
 NEG_SOURCE = r"D:\alldata_anon\early_max_gt_2.5_drymouth_neg.txt"
 CHECKPOINT_DIR = r"D:\model_checkpoints\early_dry_mouth\RUN2"
