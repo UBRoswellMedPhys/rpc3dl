@@ -9,6 +9,7 @@ import numpy as np
 import math
 import os
 import pandas as pd
+import scipy
 
 from pydicom.dataset import FileDataset
 
@@ -172,3 +173,30 @@ def backfill_labels(ds,patientID,labelsfolder,condition_descriptor):
                 labelvalue = 99
             lblgrp.attrs[timing] = labelvalue
             
+def unpack_mask(f,key):
+    dense = np.zeros_like(f['ct'][...])
+    slices = f[key]['slices'][...]
+    slice_nums = np.unique(slices).astype(int)
+    for sl in slice_nums:
+        rows = f[key]['rows'][np.where(slices==sl)]
+        cols = f[key]['cols'][np.where(slices==sl)]
+        sparse = scipy.sparse.coo_matrix(
+            (np.ones_like(cols),(rows,cols)),
+            shape=f['ct'][...].shape[1:],
+            dtype=int
+            )
+        dense[sl,...] = sparse.todense()
+    return dense
+
+def pack_mask(densemask):
+    # represent mask in sparse format
+    row = np.array([])
+    col = np.array([])
+    slic = np.array([])
+    for i in range(densemask.shape[0]):
+        sp = scipy.sparse.coo_matrix(densemask[i,...])
+        sl = np.full(sp.data.shape,fill_value=i,dtype=np.int32)
+        slic = np.concatenate([slic,sl])
+        col = np.concatenate([col,sp.col])
+        row = np.concatenate([row,sp.row])    
+    return slic, row, col

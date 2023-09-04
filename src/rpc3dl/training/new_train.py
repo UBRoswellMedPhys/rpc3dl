@@ -4,70 +4,145 @@ Created on Tue May 16 23:54:31 2023
 
 @author: johna
 """
+environment = 'CCR' # options: 'local', 'CCR', 'CCR_custom'
+preload = True
+endpoint = 'xerostomia' #alt 'xerostomia'
+IPSI_CONTRA = True
+AUGMENTS = True
+BATCH_SIZE = 20
+
+# Below variables are overwritten if run on CCR
+KFOLDS = 5
+TESTFOLD = 0
+
+
 print("Beginning imports...")
 import os
+if environment.startswith("CCR"):
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--kfold',type=int,default=None)
+    parser.add_argument('-c','--cat',nargs='*',default=[])
+    
+import sys
 import random
+from datetime import datetime
 import tensorflow as tf
 import h5py
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
-
 from tensorflow import keras
 from tensorflow.keras import layers
 
-import build_model as models
 from _utils import process_surveys, window_level
 from DataGenerator import InputGenerator_v2
 from Resnet3DBuilder import Resnet3DBuilder
+import pt_char_lookups
 print("Imports complete...")
 
-DATA_DIR = r"E:\newdata"
-
+start_time = datetime.today().strftime("%y-%m-%d_%H%M")
+print("Run started at {}".format(start_time))
+# ===========
+# Initialize data settings
 
 TIME_WINDOW = 'early'
 
-CHECKPOINT_DIR = r"D:\model_checkpoints\{}_dry_mouth\RUN10".format(TIME_WINDOW)
+if environment == 'local':
+    if endpoint == 'xerostomia':
+        DATA_DIR = r"E:\newdata"
+        CHECKPOINT_DIR = r"D:\model_checkpoints\official\{}".format(
+            start_time
+            )
+    elif endpoint == 'survival':
+        DATA_DIR = r"E:\newdata_ptv"
+        CHECKPOINT_DIR = r"D:\model_checkpoints\official_survival\{}".format(
+            start_time
+            )
+    ACTIVE_GROUPS = []
+    
+elif environment == 'CCR':
+    args = parser.parse_args()
+    if args.kfold is not None:
+        KFOLDS = 5
+        TESTFOLD = int(args.kfold)
+        print("Running kfolds: test fold is {}".format(TESTFOLD))
+    else:
+        KFOLDS = None
+        TESTFOLD = None
+    ACTIVE_GROUPS = args.cat
+    dest_dir_name = '_'.join(ACTIVE_GROUPS).replace(" ","_")
+    if dest_dir_name == '':
+        dest_dir_name = 'baseline'
+    if TESTFOLD is not None:
+        dest_dir_name += "_fold{}".format(TESTFOLD)
+    DATA_DIR = "/projects/rpci/ahle2/johnasbach/xerostomia_outcomes/newdata"
+    CHECKPOINT_DIR = "/projects/rpci/ahle2/johnasbach/xerostomia_outcomes/results/{}".format(
+        dest_dir_name
+        )
+else:
+    raise Exception("Environment not recognized, accepted options are 'local','CCR'")
 
-BATCH_SIZE = 20
 
-PT_CHAR_SETTINGS = {
-    'Treatment Type ' : True,
-    'Age at Diagnosis ' : True,
-    'Gender' : True,
-    'T Stage Clinical ' : True,
-    'N stage' : True,
-    'HPV status' : True
-    }
+
+active_fields = []
+for group in ACTIVE_GROUPS:
+    active_fields += pt_char_lookups.groups[group]
+PT_CHAR_SETTINGS = {field : True for field in active_fields}
+
+print(f"Conditions set\nIpsicontra rectify: {IPSI_CONTRA}")
+print(f"Using augments: {AUGMENTS}\nBatch size: {BATCH_SIZE}")
+print("Non-vol pt chars included: {}".format(
+    [f for f,v in PT_CHAR_SETTINGS.items() if v is True]
+    ))
 
 # =============================
 # PUT ANY NOTES HERE
 
 notes = """
-
-Trying out adding smoking status, and changed seed
-
-"""
+Running {} group
+Cycling through groups to check dependencies
+""".format(ACTIVE_GROUPS)
 # =============================
 # Prepare data
 print("Starting data prep...")
-gen = InputGenerator_v2(DATA_DIR,time='early',ipsicontra=False)
-gen.build_encoders()
+gen = InputGenerator_v2(
+    DATA_DIR,
+    time=TIME_WINDOW,
+    ipsicontra=IPSI_CONTRA,
+    call_augments=AUGMENTS,
+    endpoint=endpoint
+    )
 gen.pt_char_settings.update(PT_CHAR_SETTINGS)
-gen.build_splits(98,val=0.1,test=0.1)
+gen.build_encoders()
+
+# check top of script variables for if we're doing kfolds
+if KFOLDS is not None:
+    gen.build_splits(42,val=0.1,test=TESTFOLD,kfolds=KFOLDS)
+else:
+    gen.build_splits(42,val=0.1,test=0.1)
 gen.batch_size = BATCH_SIZE
+if preload is True:
+    gen.preload()
+
 print("Loading validation data...")
 valX, valY = gen.load_all('val')
+if isinstance(valX,tuple):
+    valX = list(valX)
+print("Val data loaded...")
+
 
 train_dataset = tf.data.Dataset.from_generator(
     gen,
-    output_signature=gen.output_sig()
+    output_signature=gen.output_sig
     )
+train_dataset = train_dataset.batch(BATCH_SIZE,drop_remainder=True)
 
-train_dataset = train_dataset.batch(BATCH_SIZE)
+
 
 # =============================
-# setup callbacks, model config
+# Setup callbacks, model config
 checkpoint = keras.callbacks.ModelCheckpoint(
     os.path.join(CHECKPOINT_DIR,"model.{epoch:02d}-loss_{val_loss:.2f}-auc_{val_auc:.2f}.h5"),
     monitor='val_loss',
@@ -77,13 +152,13 @@ checkpoint = keras.callbacks.ModelCheckpoint(
 earlystopping = keras.callbacks.EarlyStopping(
     monitor='val_auc',
     min_delta=0,
-    patience=32
+    patience=75
     )
 
 def scheduler(epoch,lr):
     if epoch < 20:
         return 0.001
-    elif 20 < epoch < 40:
+    elif 20 < epoch < 50:
         return 0.0005
     else:
         return 0.00001
@@ -92,19 +167,36 @@ lrschedule = keras.callbacks.LearningRateScheduler(
     scheduler
     )
 
+# =========================
+# Ensure write-to directory exists, this is required for model checkpointing
 if not os.path.exists(CHECKPOINT_DIR):
     os.mkdir(CHECKPOINT_DIR)
     
 with open(os.path.join(CHECKPOINT_DIR,"notes.txt"),"w") as f:
     f.write(notes)
 
+gen.export_config(os.path.join(CHECKPOINT_DIR,'datagen_config.json'))
+
 # ============================
 # Build model.
+
+if gen.pt_char_len != 0:
+    fusion_plan = {'late':gen.pt_char_len}
+else:
+    fusion_plan = {}
+
+print("Everything's ready, building model and beginning training...")
 with tf.device("/gpu:0"):
+    # =================
+    # Build the model
+    if endpoint == 'xerostomia':
+        inputshape = (40,128,128,3)
+    elif endpoint == 'survival':
+        inputshape = (60,128,128,3)
     model = Resnet3DBuilder.build_resnet_34(
-        (40,128,128,3),
+        inputshape,
         num_outputs=1,
-        fusions={'late':gen.pt_char_len},
+        fusions=fusion_plan,
         basefilters=32
         )
     optim = keras.optimizers.Adam(learning_rate=0.001)
@@ -116,27 +208,31 @@ with tf.device("/gpu:0"):
                  keras.metrics.Precision(name='prec'),
                  keras.metrics.Recall(name='rec')],
         )
-    
-    
+    # =================
+    # Configure run settings (fit args)
+    fitargs = {
+        'x':train_dataset,
+        'validation_data':(valX, valY),
+        'steps_per_epoch':(len(gen.train) // BATCH_SIZE),
+        'epochs':400,
+        'callbacks':[checkpoint, earlystopping, lrschedule],
+        }
+    if environment == 'local':
+        fitargs['verbose'] = 1
+    elif environment == 'CCR':
+        fitargs['verbose'] = 2
+        
+    history = model.fit(**fitargs)
 
-    history = model.fit(
-        train_dataset,
-        validation_data=(valX, valY),
-        # batch_size=12,
-        steps_per_epoch=(len(gen.train) // BATCH_SIZE),
-        epochs=200,
-        verbose=1,
-        callbacks=[checkpoint, earlystopping, lrschedule],
-        )
+# save the specific patient files used for train, val, test
+for group in ['train','val','test']:
+    with open(os.path.join(CHECKPOINT_DIR,f"{group}_patients.txt"),"w") as f:
+        f.write("\n".join(getattr(gen,group)))
 
-
-with open(os.path.join(CHECKPOINT_DIR,"train_patients.txt"),"w") as f:
-    f.write("\n".join(gen.train))
-with open(os.path.join(CHECKPOINT_DIR,"val_patients.txt"),"w") as f:
-    f.write("\n".join(gen.val))
-
+#
 pd.DataFrame(data=history.history).to_csv(os.path.join(CHECKPOINT_DIR,"history.csv"))    
 
+# ===============
 # free up some memory space
 del valX
 del valY
@@ -145,6 +241,8 @@ with open(os.path.join(CHECKPOINT_DIR,"test_patients.txt"),"w") as f:
     f.write("\n".join(gen.test))
 
 testX, testY = gen.load_all('test')
+if isinstance(testX,tuple):
+    testX = list(testX)
 preds = model.predict(testX)
 
 results = {

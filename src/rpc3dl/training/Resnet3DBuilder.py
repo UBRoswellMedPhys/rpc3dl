@@ -25,7 +25,8 @@ from keras.layers import (
 from keras.layers import (
     Conv3D,
     AveragePooling3D,
-    MaxPooling3D
+    MaxPooling3D,
+    Dropout
 )
 from keras.layers import add
 from keras.layers import BatchNormalization
@@ -279,12 +280,14 @@ class Resnet3DBuilder(object):
         block = pool1
         filters = basefilters
         for i, r in enumerate(repetitions):
+            # ====== FUSION EVALUATION BLOCK ======
             if i in fusions.keys():
                 if not isinstance(inputs,list):
                     inputs = [inputs]
                 newinputs = Input(shape=(fusions[i],))
                 inputs.append(newinputs)
                 block = Attach1DTo3D()([block,newinputs])
+            # =====================================
                 
             block = _residual_block3d(block_fn, filters=filters,
                                       kernel_regularizer=l2(reg_factor),
@@ -302,7 +305,7 @@ class Resnet3DBuilder(object):
                                  strides=(1, 1, 1))(block_output)
         flatten1 = Flatten()(pool2)
         if 'late' in fusions.keys():
-            features = Dense(units=fusions['late'],activation='relu',
+            features = Dense(units=16,activation='relu',
                              kernel_initializer='he_normal',
                              kernel_regularizer=l2(reg_factor))(flatten1)
             if not isinstance(inputs,list):
@@ -310,12 +313,17 @@ class Resnet3DBuilder(object):
             newinputs = Input(shape=(fusions['late'],))
             inputs.append(newinputs)
             features = Concatenate()([features,newinputs])
-            features = Dense(units=int(fusions['late']*1.5),activation='relu',
+            features = Dropout(0.1)(features)
+            features = Dense(units=10,activation='relu',
                              kernel_initializer='he_normal',
                              kernel_regularizer=l2(reg_factor))(features)
         else:
             features = flatten1
-            
+            features = Dropout(0.1)(features)
+            features = Dense(units=10,activation='relu',
+                             kernel_initializer='he_normal',
+                             kernel_regularizer=l2(reg_factor))(features)
+        
         if num_outputs > 1:
             dense = Dense(units=num_outputs,
                           kernel_initializer="he_normal",

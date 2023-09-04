@@ -11,8 +11,6 @@ import cv2
 import numpy as np
 import scipy.ndimage.interpolation as scipy_mods
 
-from _preprocess_util import pack_mask, unpack_mask
-
 def rotate(original, degree_range=15, seed=None, degrees=None):
     """
     Function to rotate 3D array about the Z axis
@@ -183,41 +181,3 @@ def bounding_box(array, shape, center=None):
         start[2]:start[2]+shape[2]
         ]
     return boxed
-
-def build_augments(filelist,iterations=3,augments=2):
-    ignore_keys = ['ct','dose','pt_chars','surveys']
-    for file in filelist:
-        with h5py.File(file,'r+') as f:
-            roi_keys = [k for k in f.keys() if k not in ignore_keys]
-            roi_masks = []
-            for k in roi_keys:
-                roi_masks.append(unpack_mask(f,k))
-            array = [f['ct'][...],f['dose'][...]] + roi_masks
-            array = np.stack(array,axis=-1)
-            for i in range(iterations):
-                new = copy.deepcopy(array)
-                seed = np.random.randint(10000)
-                ops = np.random.choice(['zoom','rotate','shift'],size=augments)
-                for op in ops:
-                    if op == 'zoom':
-                        new = zoom(new,seed=seed)
-                    elif op == 'rotate':
-                        new = rotate(new,seed=seed)
-                    elif op == 'shift':
-                        new = shift(new,seed=seed)
-                dsname = 'augment{}'.format(i)
-                if dsname in f:
-                    del f[dsname]
-                f.create_group(dsname)
-                f[dsname].attrs['ops'] = ops.astype('S')
-                f[dsname].attrs['seed'] = seed
-                f[dsname].create_dataset('ct',data=new[...,0])
-                f[dsname].create_dataset('dose',data=new[...,1])
-                for i,roi in enumerate(roi_keys):
-                    sl, r, c = pack_mask(new[...,i+2])
-                    f[dsname].create_group(roi)
-                    f[dsname][roi].create_dataset('slices',data=sl)
-                    f[dsname][roi].create_dataset('rows',data=r)
-                    f[dsname][roi].create_dataset('cols',data=c)
-        print("Done with {}".format(file))
-                    

@@ -836,6 +836,39 @@ def get_unique_values(df,delimiter=None):
             uniques[col] = list(set(uniques[col]))
     return uniques
 
+def get_value(file, field):
+    # handler to fetch any pt_char value from HDF5 file
+    idx = np.where(file['pt_chars'].attrs['fields'].astype(str) == field)[0]
+    if len(idx) == 0:
+        print("Field not found")
+        return None
+    else:
+        value = file['pt_chars'][idx].astype(str)[0]
+        return value
+    
+def get_survival(file,cutoff=730):
+    # runs calculations to evaluate label of patient for time-survival
+    # defaults to two year survival
+    status = get_value(file,'Current Status')
+    followup_days = get_value(file,'Date of Last Follow Up')
+    death_days = get_value(file, 'Date of Death')
+    rt_complete_days = get_value(file, 'RT Completion Date')
+    followup_interval = float(followup_days) - float(rt_complete_days)
+    if status == 'Alive' and followup_interval > cutoff:
+        label = 0
+    elif status == 'Dead':
+        survivaltime = float(death_days) - float(rt_complete_days)
+        if survivaltime > cutoff:
+            label = 0
+        else:
+            label = 1
+    elif status == 'Alive' and followup_interval <= cutoff:
+        label = 99
+    else:
+        # unaccounted for condition, likely means missing data fields
+        label = 99
+    return label
+
 def rebuild_mask(f,key):
     dense = np.zeros_like(f['ct'][...])
     slices = f[key]['slices'][...]
