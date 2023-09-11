@@ -13,6 +13,7 @@ import re
 import shap
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
@@ -135,8 +136,9 @@ class ShapInterpreter:
         self.result = interp.shap_values(self.test_data)
         # inference is used later 
 
-    def plot_result(self,figsize=(8,14)):
-    
+    def plot_result(self,figsize=None):
+        if figsize is None:
+            figsize = (max(14,self.result[0].shape[1] // 4),14)
         fig, ax = plt.subplots(1,2,figsize=figsize)
         ax[0].set_yticks(np.arange(self.result[0].shape[0]),labels=self.inference)
         ax[0].set_ylabel('Inference')
@@ -159,6 +161,18 @@ class ShapInterpreter:
             plt.savefig(os.path.join(self.path,'shap_fig.png'))
         else:
             plt.show()
+            
+    def save_result(self):
+        assert hasattr(self,'path')
+        cols = ["Volume Embedding {}".format(i+1) for i in range(16)]
+        cols += self.gen.pt_char_desc()
+        shapdf = pd.DataFrame(columns=cols,data=self.result[0])
+        inputdf = pd.DataFrame(columns=cols,data=self.test_data[0])
+        for df in [shapdf,inputdf]:
+            df.insert(0,'Inference',self.inference)
+        shapdf.to_csv(os.path.join(self.path,'shap_vals.csv'),index=False)
+        inputdf.to_csv(os.path.join(self.path,'input_vals.csv'),index=False)
+        
 
 
 if __name__ == '__main__':
@@ -178,8 +192,10 @@ if __name__ == '__main__':
         '23-08-26_1107',
         '23-08-27_0253',
         '23-08-27_1219',
-        '23-08-28_0130'
+        '23-08-28_0130',
+        '23-08-29_0912'
         ]
+    
 
     for timestamp in timestamps:
         path = r'D:\model_checkpoints\official\{}'.format(timestamp)
@@ -188,3 +204,4 @@ if __name__ == '__main__':
         x.prep_data()
         x.generate_shap_values()
         x.plot_result()
+        x.save_result()

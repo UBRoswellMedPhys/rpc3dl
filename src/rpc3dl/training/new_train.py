@@ -6,14 +6,16 @@ Created on Tue May 16 23:54:31 2023
 """
 environment = 'CCR' # options: 'local', 'CCR', 'CCR_custom'
 preload = True
-endpoint = 'xerostomia' #alt 'xerostomia'
+endpoint = 'xerostomia'
+TIME_WINDOW = 'early'
+FUSION_TYPE = 'late'
 IPSI_CONTRA = True
 AUGMENTS = True
-BATCH_SIZE = 20
+BATCH_SIZE = 25
 
 # Below variables are overwritten if run on CCR
-KFOLDS = 5
-TESTFOLD = 0
+KFOLDS = None
+TESTFOLD = None
 
 
 print("Beginning imports...")
@@ -47,8 +49,6 @@ print("Run started at {}".format(start_time))
 # ===========
 # Initialize data settings
 
-TIME_WINDOW = 'early'
-
 if environment == 'local':
     if endpoint == 'xerostomia':
         DATA_DIR = r"E:\newdata"
@@ -78,9 +78,9 @@ elif environment == 'CCR':
     if TESTFOLD is not None:
         dest_dir_name += "_fold{}".format(TESTFOLD)
     DATA_DIR = "/projects/rpci/ahle2/johnasbach/xerostomia_outcomes/newdata"
-    CHECKPOINT_DIR = "/projects/rpci/ahle2/johnasbach/xerostomia_outcomes/results/{}".format(
-        dest_dir_name
-        )
+    CHECKPOINT_DIR = "/projects/rpci/ahle2/johnasbach/xerostomia_outcomes/{}_results/{}".format(
+    TIME_WINDOW, dest_dir_name.lower()
+    )
 else:
     raise Exception("Environment not recognized, accepted options are 'local','CCR'")
 
@@ -152,7 +152,7 @@ checkpoint = keras.callbacks.ModelCheckpoint(
 earlystopping = keras.callbacks.EarlyStopping(
     monitor='val_auc',
     min_delta=0,
-    patience=75
+    patience=50
     )
 
 def scheduler(epoch,lr):
@@ -165,6 +165,13 @@ def scheduler(epoch,lr):
 
 lrschedule = keras.callbacks.LearningRateScheduler(
     scheduler
+    )
+
+reducelronplateau = keras.callbacks.ReduceLROnPlateau(
+    monitor="val_loss",
+    facotr=0.5,
+    patience=25,
+    min_lr=0.000001
     )
 
 # =========================
@@ -181,7 +188,8 @@ gen.export_config(os.path.join(CHECKPOINT_DIR,'datagen_config.json'))
 # Build model.
 
 if gen.pt_char_len != 0:
-    fusion_plan = {'late':gen.pt_char_len}
+    fusion_desc = 0 if FUSION_TYPE == 'early' else 'late'
+    fusion_plan = {fusion_desc:gen.pt_char_len}
 else:
     fusion_plan = {}
 
@@ -215,7 +223,7 @@ with tf.device("/gpu:0"):
         'validation_data':(valX, valY),
         'steps_per_epoch':(len(gen.train) // BATCH_SIZE),
         'epochs':400,
-        'callbacks':[checkpoint, earlystopping, lrschedule],
+        'callbacks':[checkpoint, earlystopping, reducelronplateau],
         }
     if environment == 'local':
         fitargs['verbose'] = 1
